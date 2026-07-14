@@ -35,3 +35,7 @@ county_data <- get_acs(
 )
 
 write_csv(county_data, "data/raw/acs_initialpull.csv")
+
+county_data <- county_data |> 
+  group_by(NAME,) |> 
+  pivot_wider(names_from = NAME, values_from = estimate)
