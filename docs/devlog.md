@@ -20,6 +20,8 @@ Start the project.
 
 -   Began engineering and obtaining the data for all variables decided on.
 
+-   Created the finished dataset that will be used for (version 1 if there are more versions) of the clustering and analysis.
+
 #### Decisions Made
 
 -   US Counties will be the unit analyzed

@@ -65,7 +65,9 @@ demographic_variables <- c(
   two_or_more = "B02001_008", # will use to calculate diversity index
   marital_population = "B12001_001",
   married_male = "B12001_006",
-  married_female = "B12001_015" # for % married
+  married_female = "B12001_015", # for % married
+  disability_total = "B18102_001",
+  disability_with = "B18102_004"
 )
 
 education_variables = c(
@@ -81,7 +83,8 @@ education_variables = c(
   doctorate = "B15003_025", # engineer all variables as pct
   total_enrolled = "B14001_002",
   male_public_school = "B14003_003",
-  female_public_school = "B14003_031" # used for public school %
+  female_public_school = "B14003_031", # used for public school %
+  population_25_plus = "B15003_001"
 )
 
 economy_variables = c(
@@ -102,7 +105,7 @@ housing_variables = c(
   median_gross_rent = "B25064_001",
   housing_units_total = "B25003_001",
   owner_occupied = "B25003_002", # used to calculate homeownership rate
-  housing_units_total = "B25002_001",
+  housing_units_total_2 = "B25002_001",
   vacant_units = "B25002_003", # used for vacancy rate
   median_year_built = "B25035_001", 
   renter_households = "B25070_001",
@@ -127,7 +130,7 @@ employment_variables = c(
   transportation = "C24030_021",
   information = "C24030_023",
   finance = "C24030_025",
-  professional = "C24030_027",
+  technical = "C24030_027",
   education_health = "C24030_029",
   arts_recreation = "C24030_033",
   other_services = "C24030_035",
@@ -141,7 +144,6 @@ transportation_variables <- c(
   bicycle = "B08301_018", # combined with walking
   walk = "B08301_019",
   work_from_home = "B08301_021", # each variable over the workers_commuting
-  mean_commute_time = "B08303_001"
 )
 all_acs_variables <- c(
   demographic_variables,
@@ -151,14 +153,32 @@ all_acs_variables <- c(
   employment_variables,
   transportation_variables
 )
-
+subject_vars = c(
+  mean_commute_time = "S0801_C01_046"
+)
 acs_raw <- get_acs(
   geography = "county",
   variables = all_acs_variables,
   year = 2023,
   survey = "acs5"
 )
+acs_subject <- get_acs(
+  geography = "county",
+  variables = subject_vars,
+  year = 2023,
+  survey = "acs5"
+)
+acs_subject <- acs_subject |>
+  select(
+    GEOID,
+    mean_commute_time = estimate
+  )
 
+acs_raw <- acs_raw |>
+  left_join(
+    acs_subject,
+    by = "GEOID"
+  )
 write_csv(acs_raw, "data/raw/acs_initialpull.csv")
 
 # TIGER/Line data
@@ -200,7 +220,16 @@ rucc <- rucc |>
   rename(
     "GEOID" = FIPS
   )
-
+rucc_wide <- rucc |>
+  select(GEOID, County_Name, Attribute, Value) |>
+  pivot_wider(
+    names_from = Attribute,
+    values_from = Value
+  )
+write_csv(
+  rucc_wide,
+  "data/raw/Ruralurbancontinuumcodes2023.csv"
+)
 # Climate data 
 prism_set_dl_dir("data/prism")
 
