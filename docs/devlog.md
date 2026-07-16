@@ -1,4 +1,4 @@
-### July 14th, 2026
+### Week of July 13th, 2026
 
 #### Goal
 
@@ -14,6 +14,12 @@ Start the project.
 
 -   Created folder and analysis structure
 
+-   Created First ACS data pipeline.
+
+-   Downloaded an initial county-level dataset.
+
+-   Began engineering and obtaining the data for all variables decided on.
+
 #### Decisions Made
 
 -   US Counties will be the unit analyzed
@@ -22,4 +28,4 @@ Start the project.
 
 -   Planned techniques to use: clustering, PCA, and anomaly detection
 
--   
+-   Made a table of all the variables going to be used in the project

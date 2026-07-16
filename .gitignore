@@ -44,3 +44,6 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# PRISM data (too large for GitHub)
+data/prism/
