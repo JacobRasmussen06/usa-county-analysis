@@ -1,14 +1,28 @@
-###################################################################
+#############################################################################
 #
-# 01_download_data.R
+# 01_download_and_clean_data.R
+#
+# Purpose: 
+#     Download all raw datasets used to construct the final dataset
+#   and perform cleaning so they can be safely and effectively used
+#   in feature engineering.
+#
+# Outputs:
+# - ACS data
+# - County geography
+# - RUCC classifications
+# - Climate features
+# - Elevation
+# - Terrain Ruggedness
+# - Coast distance
+# - Forest coverage
+# - Politics
+# - CHR&R health variables
 #
 #
-#
-#
-#
-#
-###################################################################
+#############################################################################
 
+# All libraries required for this script: (install.packages("(library)") if you do not have them)
 library(tidycensus)
 library(tidyverse)
 library(tigris)
@@ -21,12 +35,14 @@ library(rnaturalearth)
 library(units)
 library(FedData)
 
-census_api_key("0284737ce531e26d237dfd8af2a15149598f27ce", install = TRUE)
 
-acs_variables <-  tidycensus::load_variables(
-  year = 2023,
-  dataset = "acs5"
-)
+#############################################################################
+# ACS Data
+#############################################################################
+
+# Run once to install your Census API key:
+# census_api_key("YOUR_KEY", install = TRUE)
+# Notes for how to obtain a Census API key are in the README
 
 demographic_variables <- c(
   total_population = "B01003_001", # total / land area from later for pop density
@@ -40,7 +56,7 @@ demographic_variables <- c(
   female_under5 = "B01001_027",
   female_5_9  = "B01001_028",
   female_10_14 = "B01001_029",
-  female_15_17 = "B01001_030", # need to calculate under 18%
+  female_15_17 = "B01001_030", # needed to calculate under 18%
   male_65_66 = "B01001_020",
   male_67_69 = "B01001_021",
   male_70_74 = "B01001_022",
@@ -52,7 +68,7 @@ demographic_variables <- c(
   female_70_74 = "B01001_046",
   female_75_79 = "B01001_047",
   female_80_84 = "B01001_048",
-  female_85_plus = "B01001_049", # need to calculate over 65%,
+  female_85_plus = "B01001_049", # needed to calculate over 65%,
   adult_population = "B21001_001",
   veterans = "B21001_002", # veterans / adult population since kids cannot be in the military
   total_population_race = "B02001_001",
@@ -70,7 +86,7 @@ demographic_variables <- c(
   disability_with = "B18102_004"
 )
 
-education_variables = c(
+education_variables <- c(
   education_total = "B15003_001",
   high_school = "B15003_017",
   ged = "B15003_018", # ged will be combined with high school to produce the high school %
@@ -87,7 +103,7 @@ education_variables = c(
   population_25_plus = "B15003_001"
 )
 
-economy_variables = c(
+economy_variables <- c(
   median_household_income = "B19013_001",
   median_earnings = "B20002_001",
   poverty_total = "B17001_001",
@@ -100,7 +116,7 @@ economy_variables = c(
   snap_households = "B22003_002" # used for % of hh using snap
 )
 
-housing_variables = c(
+housing_variables <- c(
   median_home_value = "B25077_001",
   median_gross_rent = "B25064_001",
   housing_units_total = "B25003_001",
@@ -120,7 +136,7 @@ housing_variables = c(
   internet_subscription = "B28002_002" # for broadband internet access % 
 )
 
-employment_variables = c(
+employment_variables <- c(
   employed_population = "C24030_001",
   agriculture = "C24030_003",
   construction = "C24030_007",
@@ -143,7 +159,7 @@ transportation_variables <- c(
   public_transit = "B08301_010",
   bicycle = "B08301_018", # combined with walking
   walk = "B08301_019",
-  work_from_home = "B08301_021", # each variable over the workers_commuting
+  work_from_home = "B08301_021" # each variable over the workers_commuting
 )
 all_acs_variables <- c(
   demographic_variables,
@@ -153,7 +169,7 @@ all_acs_variables <- c(
   employment_variables,
   transportation_variables
 )
-subject_vars = c(
+subject_vars <- c(
   mean_commute_time = "S0801_C01_046"
 )
 acs_raw <- get_acs(
@@ -168,6 +184,9 @@ acs_subject <- get_acs(
   year = 2023,
   survey = "acs5"
 )
+# Subject table variable (downloaded separately because they
+# cannot be requested with detailed table variables)
+
 acs_subject <- acs_subject |>
   select(
     GEOID,
@@ -181,13 +200,15 @@ acs_raw <- acs_raw |>
   )
 write_csv(acs_raw, "data/raw/acs_initialpull.csv")
 
-# TIGER/Line data
+###############################################################
+# TIGER County Geography
+###############################################################
 
 counties_tiger <- counties(
   cb = TRUE,
   year = 2023
 )
-county_geo <- counties_tiger %>%
+county_geo <- counties_tiger |> 
   select(
     GEOID,
     NAME,
@@ -197,7 +218,7 @@ county_geo <- counties_tiger %>%
     AWATER,
     geometry
   )
-county_geo <- county_geo %>%
+county_geo <- county_geo |> 
   mutate(
     land_area_sq_miles = ALAND / 2589988.10, # convert to sq. miles,
     water_coverage = AWATER / (ALAND + AWATER)
@@ -211,7 +232,9 @@ saveRDS(
   "data/raw/county_geography.rds"
 )
 
-# RUCC 
+###############################################################
+# Rural Urban Continuum Codes
+###############################################################
 
 rucc <- read_csv(
   "data/raw/Ruralurbancontinuumcodes2023.csv"
@@ -230,20 +253,28 @@ write_csv(
   rucc_wide,
   "data/raw/Ruralurbancontinuumcodes2023.csv"
 )
-# Climate data 
+
+###############################################################
+# PRISM Climate Data
+###############################################################
+
 prism_set_dl_dir("data/prism")
+
+# Downloads PRISM 30-year climate normals.
+# Files are cached in data/prism.
 
 get_prism_normals(
   type = "tmean",
   resolution = "4km",
   mon = 1:12
-)
+) 
 
 get_prism_normals(
   type = "ppt",
   resolution = "4km",
   mon = 1:12
 )
+
 
 zip_files <- list.files(
   "data/prism",
@@ -252,7 +283,6 @@ zip_files <- list.files(
   full.names = TRUE
 )
 
-length(zip_files)
 
 
 for (z in zip_files) {
@@ -292,7 +322,7 @@ county_precip <- exact_extract(
   "mean"
 )
 
-climate <- county_geo |>
+climate_features <- county_geo |>
   st_drop_geometry() |>
   select(GEOID, NAME) |>
   mutate(
@@ -301,11 +331,13 @@ climate <- county_geo |>
   )
 
 saveRDS(
-  climate,
+  climate_features,
   "data/raw/climate_features.rds"
 )
 
-# Elevation and Terrain
+###############################################################
+# Obtaining elevation and terrain ruggedness
+###############################################################
 
 counties_ll <- st_transform(county_geo, 4326)
 
@@ -368,7 +400,9 @@ saveRDS(
   "data/raw/tri_features.rds"
 )
 
-# Distance from coastline
+###############################################################
+# Obtaining distance from coastline
+###############################################################
 
 coast <- ne_download(
   scale = "medium",
@@ -392,28 +426,9 @@ coast_features <- county_geo |>
   )
 saveRDS(coast_features, "data/raw/coast_features.rds")
 
-# Adding data from CHR&R 
-chrr <- read_csv(
-  "data/raw/analytic_data2025_v3.csv", col_names = TRUE
-)
-chrr <- chrr |> 
-  rename("GEOID" = `5-digit FIPS Code`)
-chrr <- chrr |> 
-  rename(voter_turnout = `Voter Turnout raw value`, suicide_rate = `Suicides raw value`,
-         homicide_rate = `Homicides raw value`, 
-         firearm_deaths = `Firearm Fatalities raw value`) |> 
-  select(GEOID, Name, voter_turnout, homicide_rate, firearm_deaths, suicide_rate)
-chrr_clean <- chrr |>
-  semi_join(
-    county_geo,
-    by = "GEOID"
-  )
-saveRDS(
-  chrr_clean,
-  "data/raw/chrrdata.rds"
-)
-unique(substr(county_geo$GEOID,1,2))
-# Forest Coverage %
+###############################################################
+# Forest Coverage
+###############################################################
 
 fia <- st_read(
   "data/raw/S_USA.Lndcv_FIA_CntyEst_2015_PL/S_USA.Lndcv_FIA_CntyEst_2015_PL.shp"
@@ -437,7 +452,9 @@ saveRDS(
   "data/raw/forest_features.rds"
 )
 
-# Political Variables
+###############################################################
+# Political Features
+###############################################################
 
 elections <- read_csv("data/raw/countypres_2000-2024.csv")
 elections <- elections |>
@@ -474,7 +491,7 @@ election_wide <- election_votes |>
     values_from = votes,
     values_fill = 0
   )
-politics <- election_wide |>
+politics_metrics <- election_wide |>
   mutate(
     dem_vote_share =
       DEMOCRAT / totalvotes,
@@ -484,7 +501,7 @@ politics <- election_wide |>
           (REPUBLICAN / (DEMOCRAT + REPUBLICAN))
       )
   )
-politics_features <- politics |>
+politics_features <- politics_metrics |>
   select(
     GEOID,
     year,
@@ -521,3 +538,33 @@ saveRDS(
   "data/raw/politics_features.rds"
 )
 
+
+###############################################################
+# County Health Rankings & Roadmaps Data
+###############################################################
+
+chrr <- read_csv(
+  "data/raw/analytic_data2025_v3.csv", col_names = TRUE
+)
+chrr <- chrr |> 
+  rename("GEOID" = `5-digit FIPS Code`)
+chrr <- chrr |> 
+  rename(voter_turnout = `Voter Turnout raw value`, suicide_rate = `Suicides raw value`,
+         homicide_rate = `Homicides raw value`, 
+         firearm_deaths = `Firearm Fatalities raw value`) |> 
+  select(GEOID, Name, voter_turnout, homicide_rate, firearm_deaths, suicide_rate)
+chrr_clean <- chrr |>
+  semi_join(
+    county_geo,
+    by = "GEOID"
+  )
+saveRDS(
+  chrr_clean,
+  "data/raw/chrrdata.rds"
+)
+
+cat("Finished downloading and cleaning raw datasets.\n")
+
+###############################################################
+# End of Script
+###############################################################

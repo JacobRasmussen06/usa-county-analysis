@@ -1,18 +1,42 @@
+#############################################################################
+#
+# 02_feature_engineering.R
+#
+# Purpose: 
+#     Engineer features from the ACS data that will be added to the final dataset.
+#   Note: all other features, even if they had to be engineered, were created in the
+#   first script. They will be merged with the ACS data in the next script. 
+#
+# Outputs:
+# - acs_cleaned_ready.csv
+#
+#
+#############################################################################
+
+# Required packages for this script
 library(tidyverse)
-library(sf)
-library(lubridate)
+library(tidycensus)
 
-
+#############################################################################
+# Load in raw data
+#############################################################################
 acs <- read_csv("data/raw/acs_initialpull.csv")
 
 acs_wide <- acs |>
-  select(GEOID, NAME, variable, estimate) |>
+  select(GEOID, NAME, variable, estimate, mean_commute_time) |>
   pivot_wider(
     names_from = variable,
     values_from = estimate
   )
+
+#############################################################################
+# Engineer variables 
+#############################################################################
+
 acs_features <- acs_wide |> 
   mutate(
+    # Demographic variables
+    
     under_18_pct = 
       (male_under5 + male_5_9 + male_10_14 + male_15_17 + 
          female_under5 + female_5_9 + female_10_14 + female_15_17)
@@ -23,20 +47,35 @@ acs_features <- acs_wide |>
     / total_population,
     foreign_born_pct = foreign_born / total_population,
     veteran_pct = veterans / adult_population, # Since children cannot be in the military
+    disability_rate = disability_with / disability_total,
+    married_pct = (married_male + married_female) / marital_population,
+  
+    # Education Variables
+    
     high_school_pct = (high_school + ged) / adult_population,
     some_college_pct = (some_college_lt1 + some_college_gt1 + associates) / adult_population,
     college_grad_pct = bachelors / adult_population,
     masters_or_higher_pct = (masters + doctorate + professional) / adult_population,
     public_school_pct = (female_public_school + male_public_school) / total_enrolled,
+    
+    # Economic Variables
+    
     unemployment_rate = unemployed / labor_force,
     poverty_rate = below_poverty / poverty_total,
     labor_participation_rate = labor_force / population_16_plus,
     snap_pct = snap_households / households_total,
+    internet_access_pct = internet_subscription / int_households_total,
+    
+    # Housing Variables
+    
     homeownership_rate = owner_occupied / occupied_units,
     vacancy_rate = vacant_units / housing_units_total_2,
     crowding_rate = (crowded_1_01_1_50 + crowded_1_50_plus) / occupied_units,
     housing_cost_burden_pct = (rent_30_34 + rent_35_39 + rent_40_49 + rent_50_plus) 
     / renter_households,
+    
+    # Employment Variables
+    
     agriculture_pct = agriculture / employed_population,
     construction_pct = construction / employed_population,
     manufacturing_pct = manufacturing / employed_population,
@@ -47,14 +86,14 @@ acs_features <- acs_wide |>
     education_healthcare_pct = education_health / employed_population,
     government_pct = government / employed_population, 
     technical_pct = technical / employed_population,
+    
+    # Transportation Variables
+    
     public_transit_pct = public_transit / workers_commuting,
     work_from_home_pct = work_from_home / labor_force,
     walk_bike_to_work_pct = (walk + bicycle) / workers_commuting,
     drive_alone_pct = drive_alone / workers_commuting,
-    internet_access_pct = internet_subscription / int_households_total,
-    married_pct = (married_male + married_female) / marital_population,
-    mean_commute_time = mean_commute_time / 60, # Convert to minutes
-    disability_rate = disability_with / disability_total,
+    
     # Creating a diversity index modeled off of the Simpson Diversity Index for biodiversity in a region
     white_pct = white / total_population_race,
     black_pct = black / total_population_race,
@@ -74,7 +113,7 @@ acs_features <- acs_wide |>
   ) |> 
   select(
     GEOID, NAME, total_population, median_age, under_18_pct, over_65_pct, average_household_size, 
-    foreign_born_pct, veteran_pct, high_school_pct, some_college_pct, college_grad_pct, public_school_pct,
+    foreign_born_pct, veteran_pct, high_school_pct, some_college_pct, college_grad_pct,
     masters_or_higher_pct, public_school_pct, median_household_income, unemployment_rate, poverty_rate, 
     labor_participation_rate, gini_index, median_earnings, snap_pct, mean_commute_time, median_home_value,
     median_gross_rent, homeownership_rate, vacancy_rate, median_year_built, crowding_rate,
@@ -84,6 +123,9 @@ acs_features <- acs_wide |>
     walk_bike_to_work_pct, drive_alone_pct
   )
 
+#############################################################################
+# Bring in 2018 data for growth variables
+#############################################################################
 
 acs_2018_features <- get_acs(
   geography = "county",
@@ -95,6 +137,10 @@ acs_2018_features <- get_acs(
   survey = "acs5",
   output = "wide"
 )
+
+#############################################################################
+# Engineer growth variables
+#############################################################################
 
 acs_2018_features <- acs_2018_features |>
   select(
@@ -113,16 +159,21 @@ acs_features <- acs_features |>
       (total_population - population_2018) /
       population_2018,
     population_weight =
-      total_population / (total_population + 1000),
+      total_population / (total_population + 1000), 
+    # Population stability index is a custom variable added to give a metric of how stable a county's 
+    # population is. A score closer to one indicates a stable population
+    # smaller counties get a weight from population_weight to increase the stability of the metric by reducing penalties
     pop_stability_index =
       case_when(
         population_growth_5yr < 0 ~
-          exp(-2 * abs(population_growth_5yr) * population_weight),
+          exp(-4 * abs(population_growth_5yr) * population_weight), # Population decrease is punished more heavily
         
         TRUE ~
-          exp(-abs(population_growth_5yr) * population_weight)
+          exp(-2 *abs(population_growth_5yr) * population_weight)
       )
   )
+
+# Approximate CPI adjustment from 2018 dollars to 2023 dollars
 inflation_factor <- 1.20
 acs_features <- acs_features |>
   mutate(
@@ -134,10 +185,14 @@ acs_features <- acs_features |>
       income_2018_real
   )
 
+#############################################################################
+# Construct final feature set
+#############################################################################
+
 acs_clean_features <- acs_features |> 
   select(
   GEOID, NAME, total_population, median_age, under_18_pct, over_65_pct, average_household_size, 
-  foreign_born_pct, veteran_pct, high_school_pct, some_college_pct, college_grad_pct, public_school_pct,
+  foreign_born_pct, veteran_pct, high_school_pct, some_college_pct, college_grad_pct,
   masters_or_higher_pct, public_school_pct, median_household_income, unemployment_rate, poverty_rate, 
   labor_participation_rate, gini_index, median_earnings, snap_pct, mean_commute_time, median_home_value,
   median_gross_rent, homeownership_rate, vacancy_rate, median_year_built, crowding_rate,
@@ -149,3 +204,10 @@ acs_clean_features <- acs_features |>
 
 
 write_csv(acs_clean_features, "data/raw/acs_cleaned_ready.csv")
+
+
+cat("Finished engineering ACS features.\n")
+
+#############################################################################
+# End of Script
+#############################################################################

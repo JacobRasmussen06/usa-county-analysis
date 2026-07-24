@@ -1,7 +1,23 @@
+#############################################################################
+#
+# 03_merging_data.R
+#
+# Purpose:
+# Merge all engineered feature datasets into a single dataset
+# and perform final cleaning to it.
+#
+# Outputs:
+# - county_dataset.rds
+#
+#############################################################################
+
+# Required packages
 library(tidyverse)
 library(sf)
-library(lubridate)
 
+#############################################################################
+# Load Data
+#############################################################################
 
 acs <- read_csv("data/raw/acs_cleaned_ready.csv")
 county_geo <- readRDS("data/raw/county_geography.rds")
@@ -13,6 +29,10 @@ coast_features <- readRDS("data/raw/coast_features.rds")
 politics_features <- readRDS("data/raw/politics_features.rds")
 chrr <- readRDS("data/raw/chrrdata.rds")
 rucc <- read_csv("data/raw/Ruralurbancontinuumcodes2023.csv")
+
+#############################################################################
+# Standardize GEOIDs 
+#############################################################################
 
 acs <- acs |> 
   mutate(GEOID = as.character(GEOID))
@@ -35,6 +55,10 @@ chrr <- chrr |>
 rucc <- rucc |> 
   mutate(GEOID = as.character(GEOID))
 
+#############################################################################
+# Merge Feature Tables 
+#############################################################################
+
 county_dataset <- county_geo |> 
   left_join(acs, by = "GEOID") |> 
   left_join(climate_features, by = "GEOID") |> 
@@ -50,6 +74,14 @@ county_dataset <- county_dataset |>
     population_density =
       total_population / land_area_sq_miles
   )
+
+#############################################################################
+# Clean the dataset
+#############################################################################
+
+# The dataset's analysis is restricted to the lower 48 states + DC
+# This is because several geographic variables like distance to 
+# coastline, climate, etc. are not directly comparable. 
 
 clean_county_dataset <- county_dataset |>
   filter(
@@ -85,7 +117,21 @@ clean_county_dataset <- clean_county_dataset |>
     forest_coverage_pct, mean_temp, annual_precip, geometry
     )
 
+#############################################################################
+# Save Final Dataset
+#############################################################################
+
+write_csv(
+  st_drop_geometry(clean_county_dataset),
+  "data/finished/county_dataset.csv"
+)
 saveRDS(
   clean_county_dataset,
   "data/finished/county_dataset.rds"
 )
+
+cat("Finished merging the data and created a final dataset. \n")
+
+#############################################################################
+# End of Script
+#############################################################################
