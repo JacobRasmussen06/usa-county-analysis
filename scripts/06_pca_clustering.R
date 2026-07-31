@@ -1,6 +1,6 @@
 #############################################################################
 #
-# 06_clustering_1.R
+# 06_pca_clustering.R
 #
 # Purpose:
 #  Using the PCA, perform k means clustering on the data
@@ -104,47 +104,6 @@ ggsave(
   dpi = 300
 )
 
-cluster_sizes <- county_clusters |>
-  filter(!is.na(cluster13)) |>
-  st_drop_geometry() |>
-  group_by(cluster13) |>
-  summarise(
-    counties = n()
-  ) |>
-  ungroup()
-
-cluster_size_chart <- ggplot(
-  cluster_sizes,
-  aes(
-    x = factor(cluster13),
-    y = counties)) +
-  geom_col(
-    fill = "#3C8DAD",
-    color = "black",
-    width = .7) +
-  geom_text(
-    aes(label = counties),
-    vjust = -0.4,
-    size = 3.2) +
-  labs(
-    title = "Amount of Counties Per PCA Based Cluster",
-    subtitle = "Some of the 13 clusters are small, while some are large.",
-    x = "Cluster",
-    y = "Number of Counties") +
-  theme_classic(base_size = 14) +
-  theme(
-    plot.title = element_text(size = 18, face = "bold"),
-    plot.subtitle = element_text(size = 12),
-    legend.position = "right",
-    legend.title = element_text(face = "bold"))
-ggsave(
-  "figures/clustering/charts/cluster_sizes.png",
-  cluster_size_chart,
-  width = 8,
-  height = 5,
-  dpi = 300
-)
-
 
 #############################################################################
 # Cluster Maps and Selection
@@ -170,7 +129,7 @@ k5_county_map <- ggplot(
     legend.title = element_text(face = "bold"),
     plot.caption = element_text(size = 8, hjust = .5))
 ggsave(
-  filename = "figures/clustering/maps/k5_county_map.png",
+  filename = "figures/clustering/maps/pca_k5_county_map.png",
   plot = k5_county_map,
   width = 10,
   height = 6,
@@ -196,7 +155,7 @@ k8_county_map <- ggplot(
     legend.title = element_text(face = "bold"),
     plot.caption = element_text(size = 8, hjust = .5))
 ggsave(
-  filename = "figures/clustering/maps/k8_county_map.png",
+  filename = "figures/clustering/maps/pca_k8_county_map.png",
   plot = k8_county_map,
   width = 10,
   height = 6,
@@ -223,7 +182,7 @@ k13_county_map <- ggplot(
     legend.title = element_text(face = "bold"),
     plot.caption = element_text(size = 8, hjust = .5))
 ggsave(
-  filename = "figures/clustering/maps/k13_county_map.png",
+  filename = "figures/clustering/maps/pca_k13_county_map.png",
   plot = k13_county_map,
   width = 10,
   height = 6,
@@ -250,7 +209,7 @@ k16_county_map <- ggplot(
     legend.title = element_text(face = "bold"),
     plot.caption = element_text(size = 8, hjust = .5))
 ggsave(
-  filename = "figures/clustering/maps/k16_county_map.png",
+  filename = "figures/clustering/maps/pca_k16_county_map.png",
   plot = k16_county_map,
   width = 10,
   height = 6,
@@ -277,7 +236,7 @@ k20_county_map <- ggplot(
     legend.title = element_text(face = "bold"),
     plot.caption = element_text(size = 8, hjust = .5))
 ggsave(
-  filename = "figures/clustering/maps/k20_county_map.png",
+  filename = "figures/clustering/maps/pca_k20_county_map.png",
   plot = k20_county_map,
   width = 10,
   height = 6,
@@ -287,7 +246,6 @@ ggsave(
 # Based on both the maps and the table, it seems that k = 13 is the best option
 # for the kmeans clustering. This is because while it has some small clusters,
 # every cluster is meaningful and there is nuanced divide between each cluster
-
 
 #############################################################################
 # Robustness check Between PC30 and PC20
@@ -330,7 +288,7 @@ k13_pc30_county_map <- ggplot(
     legend.title = element_text(face = "bold"),
     plot.caption = element_text(size = 8, hjust = .5))
 ggsave(
-  filename = "figures/clustering/maps/k13_pc30_county_map.png",
+  filename = "figures/clustering/maps/pca_k13_pc30_county_map.png",
   plot = k13_pc30_county_map,
   width = 10,
   height = 6,
@@ -423,6 +381,47 @@ ggsave(
 # Cluster Summary Statistics
 #############################################################################
 
+cluster_sizes <- county_clusters |>
+  filter(!is.na(cluster13)) |>
+  st_drop_geometry() |>
+  group_by(cluster13) |>
+  summarise(
+    counties = n()
+  ) |>
+  ungroup()
+
+cluster_size_chart <- ggplot(
+  cluster_sizes,
+  aes(
+    x = factor(cluster13),
+    y = counties)) +
+  geom_col(
+    fill = "#3C8DAD",
+    color = "black",
+    width = .7) +
+  geom_text(
+    aes(label = counties),
+    vjust = -0.4,
+    size = 3.2) +
+  labs(
+    title = "Amount of Counties Per PCA Based Cluster",
+    subtitle = "Some of the 13 clusters are small, while some are large.",
+    x = "Cluster",
+    y = "Number of Counties") +
+  theme_classic(base_size = 14) +
+  theme(
+    plot.title = element_text(size = 18, face = "bold"),
+    plot.subtitle = element_text(size = 12),
+    legend.position = "right",
+    legend.title = element_text(face = "bold"))
+ggsave(
+  "figures/clustering/charts/pca_cluster_sizes.png",
+  cluster_size_chart,
+  width = 8,
+  height = 5,
+  dpi = 300
+)
+
 cluster_summary <- county_clusters |>
   filter(!is.na(cluster13)) |>
   st_drop_geometry() |>
@@ -475,14 +474,14 @@ representatives <- pc20_clustered |>
   ) |>
   ungroup()
 
+county <- readRDS("data/finished/county_dataset.rds")
+
 representatives_named <- representatives |>
   left_join(
     county |> select(GEOID, county_name),
     by = "GEOID"
   ) |>
   select(cluster, county_name, distance_to_center)
-
-county <- readRDS("data/finished/county_dataset.rds")
 
 largest_counties <- county |>
   left_join(
@@ -491,8 +490,28 @@ largest_counties <- county |>
   ) |>
   group_by(cluster) |>
   arrange(desc(total_population)) |>
-  slice_head(n = 5) |>
+  slice_head(n = 3) |>
   select(cluster, county_name, total_population)
+
+#############################################################################
+# Save a Cluster Dataset
+#############################################################################
+
+county_pca_clusters <- county_clusters |>
+  select(
+    GEOID,
+    county_name,
+    cluster5,
+    cluster8,
+    cluster13,
+    cluster16,
+    cluster20
+  )
+
+saveRDS(
+  county_pca_clusters,
+  "data/finished/county_pca_clusters.rds"
+)
 
 #############################################################################
 # End of Script

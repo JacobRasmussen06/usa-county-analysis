@@ -74,3 +74,25 @@ Explore the data, do analysis, and start the process towards finishing analysis 
 
 -   Decided not to include the CHR&R variables in the PCA dataset, as they were missing hundreds of counties' data and It was determined to be too big of a loss to not include 1/3 of the dataset.
 -   Decided to scale the forest coverage variable to some counties using median forest cov for the region they're in because it was only like 40 counties missing
+
+### Week of July 27th, 2026
+
+#### Goal
+
+Run the second and third round of clustering and build the engine that finds similar counties to the one based on the clusters and data as well as the uniqueness scores for each county
+
+#### Progress
+
+-   Created 13 cluster hierarchical clusters dataset
+
+-   Created 14 cluster GMM clusters dataset
+
+-   Created a similarity dataset that shows how similar counties are (based on Euclidean distance in the k-dimensional space)
+
+-   Calculated uniqueness based on distance from k most similar counties, distance from neighboring counties, distance from other counties in the cluster, and a combination of all three, and created a dataset that shows each uniqueness score.
+
+#### Decisions
+
+-   Decided to run both hierarchical clustering and GMM clustering to have an even wider net of clustering info to build the similarity and county types off of
+-   Based off testing on several counties, some weights for the scaled variables were added to make the similarity engine slightly more accurate. Geographic variables were all affected and weighed less by varying degrees. Check the 09_similarity.R for more information.
+-   Decided to use 50 closest counties for isolation uniqueness, neighbors and neighbors' neighbors for neighbor uniqueness, and added weights to each uniqueness type to create the combined uniqueness. Check 10_uniqueness.R for more information.
