@@ -1,0 +1,264 @@
+---
+title: "report"
+format: html
+---
+
+# (placeholder title)
+
+## Introduction
+
+In the United States, there are 3,109 counties/county-equivalents across the continental part of the country (the 'lower 48' and the District of Columbia). These counties stretch from the mega city environment of New York County, New York, to the most sparse rural life of Loving, Texas. Every county has something unique to offer, but there are patterns you see in some counties. Pick a random county, and it is likely pretty similar to counties nearby, which raises an interesting question: how are counties similar and different from each other?
+
+More specifically, can we group counties together meaningfully with publicly available data? This project aims to answer that question and three broader research questions: which counties are similar to each other statistically? What counties are unusual to the counties around them? What kinds of counties exist?
+
+Traditional geographic classifications often rely on simpler statistics, like population or their status as urban or rural, it's evident there are more complex patterns beneath the surface. Unsupervised machine learning provides an opportunity to uncover these patterns and use them to group counties together.
+
+This project develops a pipeline of data that contains information on a county's demographics, economics, education, employment, crime, politics, geography, and climate, explores the makeup of the United States based on the variables in the pipeline, and then explores three different approaches to cluster the counties: principal component analysis (PCA), hierarchical clustering (HC or HCA), and Gaussian mixture model clustering (GMM). Through these approaches, meaningfully significant archetypes of U.S. counties were found, and an engine of similar and unique counties was created.
+
+Finally, the results of this project were synthesized to create a dashboard and an interactive map so that readers can more interactively explore the counties of the United States.
+
+## Data Documentation
+
+Several different data sources were processed and cleaned to craft a final dataset. To see the detailed dictionary of all the variables in the dataset, refer to [Appendix A](#appendix-a).
+
+### Data Sources
+
+#### American Community Survey (ACS)
+
+The American Community Survey 2023 5 year estimates served as the primary source of the demographic, housing, economic, and educational characteristics of counties. Variables like median household income, median age, poverty rate, educational attainment, and much more were obtained from the ACS. Furthermore, the 2018 ACS was also used to construct 5 year changes in income and population, the latter of which being used to construct a population stability index. A diversity index was also engineered using race data from the ACS.
+
+#### TIGER/Line Geography
+
+TIGER/Line county boundaries were used as the backbone for all geographic visualizations throughout the project. In addition to county boundaries, TIGER/Line was the data source for a county's land area and its water coverage percentage.
+
+#### PRISM Climate Normals
+
+PRISM Climate normals were processed and used to characterize long-term conditions in a county's climate. Mean annual temperature and annual precipitation were obtained from this data source.
+
+#### USGS Elevation
+
+Via the R package elevatr, USGS elevation rasters were obtained and summarize to produce a county's mean elevation and the ruggedness (standard deviation) of its terrain.
+
+#### NLCD / FIA Land Cover
+
+National Land Cover Database and Forest Inventory and Analysis products were used to estimate forest coverage, the amount of land in a county that is forested.
+
+#### County Health Rankings & Roadmaps (CHR&R)
+
+The CHR&R was the data source for the homicide rate, suicide rate, and firearm fatalities of a county, as well as its voter turnout in the 2020 election.
+
+#### MIT Election Data and Science Lab County Presidential Election Returns
+
+The MIT Election Data served as the data source for the political variables of the dataset. These variables include the percentage of votes the Democratic party earned in the 2020 election, as well as three engineered variables: party competitiveness, and 20 year changes in both democratic vote share and party competitiveness.
+
+#### Rural Urban Continuum Codes
+
+The USDA Rural Urban Continuum Codes were used to effectively distinguish metropolitan counties from rural counties, validate the results of a particular decision made, and provide standardized metrics of urbanization among counties.
+
+Overall, the data pipeline for this project was thorough, containing several data sources and steps. First data was obtained in raw form. Then, it was cleaned, and variables were engineered. Then, every source was merged into one dataset using a county's 5 digit identifier, referred to as its GEOID in the project. Following the merger, the dataset was used as the backbone to clustering analysis. Finally, the dataset was used as an engine to be used in the accompanying Shiny Dashboard and Interactive Map. The full pipeline of data can be found in the first three scripts of the scripts folder, found in the accompanying GitHub repository.
+
+## Data Exploration
+
+Upon the creation of the first merged county dataset, exploratory data analysis was performed to get familiar with the variables, the counties, and the trends to be seen in the data. Firstly, the variables were explored using histograms. Several interesting histogram results are shown below.
+
+![Histogram of the county dataset's population densities.](../figures/eda/histograms/populationdensity_histogram.png){#fig-popdens-histogram}
+
+![Histogram of the county dataset's forested land %.](../figures/eda/histograms/forested_land_histogram.png){#fig-forland-histogram}
+
+![Histogram of the county dataset's Gini indexes, a measure of income inequality.](../figures/eda/histograms/gini_index_histogram.png){#fig-gini-histogram}
+
+![Histogram of the county dataset's Housing Cost Burden, a measure of how much of a renters' budget was spent on housing.](../figures/eda/histograms/housing_cost_burden_histogram.png){#fig-hcb-histogram}
+
+![Histogram of the county dataset's median household income.](../figures/eda/histograms/median_income_histogram.png){#fig-mhi-histogram}
+
+![Histogram of the county dataset's Party Competitiveness, a measure of their elections.](../figures/eda/histograms/party_competitiveness_histogram.png){#fig-comp-histogram}
+
+![Histogram of the county dataset's RUCC codes, a measure of a county's rurality.](../figures/eda/histograms/rucc_distribution.png){#fig-rucc-histogram}
+
+Several variables, like population density, median household income, Gini index, and housing cost burden follow roughly normal distributions, meaning those variables are roughly evenly and normally split around a mean. This makes sense intuitively for something like median household income, where so long as there is not wild variation in income depending on the county, you'd expect most counties in the US to fall somewhere on that scale.
+
+Other variables, like forested land, have much more interesting distributions. Instead of following a typical distribution, the forest land cover is unique. It spikes at 0, which makes sense conceptually, as there are many counties in the US either in places with no forests, or just flat out urban areas where land to grow forests is hard to come by. Then, forested land % is pretty steady at around 100 counties for each level of forested land. Then it falls off as it approaches 100% forested land. There's no other variable with a distribution like that, making it one of the most unique metrics available.
+
+For the sake of simplicity, it can be assumed that most of the remaining variables not mentioned or plotted have distributions that are not normal or easily represented with a histogram.
+
+The next point of exploration was correlation. Before using these variables to cluster counties together, it is useful to know how variables are correlated to one another, thus when selecting variables to use, knowing which ones affect each other potentially more than they affect the cluster.
+
+![Top 20 correlated pairs.](../figures/eda/heatmaps/top_20_correlation.png){#fig-top20-corr}
+
+The above plot shows the top 20 correlated pairs by absolute correlation. Some pairs, like median age and over 65% or median earnings and median household income, make logical sense to be high. A few interesting patterns do arise. The party competitiveness swing being correlated with a democratic swing indicates that more counties that had previously voted republican became swing counties between 2000 and 2020. Median gross rent being highly correlated with retail percentage is interesting, showing that when your rent is higher, you're more likely to work in retail.
+
+In terms of negative correlations, most of the highly negatively correlated pairs make logical sense, with the most unexpected pair being democratic swing being negatively correlated with high school %.
+
+The following graphs show more specified heat maps of correlations within the individual types of variables.
+
+![Correlations of demographic variables.](../figures/eda/heatmaps/corr_demographics.png){#fig-corr-demo}
+
+Most demographic variables remain uncorrelated with each other, indicated that the scope of the variables selected for this category do an adequate job of not telling the same story with every variable. The variables that are correlated also make perfect sense in context, such as diversity index being correlated with foreign born %. An interesting note that population stability index remains relatively uncorrelated with population growth, which seems odd at first, since the growth was used to craft the index, but this too makes sense because the growth going up or down makes the index go up or down too.
+
+![Correlations of economic variables.](../figures/eda/heatmaps/corr_economics.png){#fig-corr-econ}
+
+The economic variables, unlike the demographics, are highly correlated with one another. Almost every correlation on the heatmap makes perfect sense in context, and while they are correlated, only a few pairs are highly connected enough to warrant saying they speak to the same pattern.
+
+![Correlations of employment variables.](../figures/eda/heatmaps/corr_employment.png){#fig-corr-emp}
+
+The variables of the percentages of workers in specific fields are highly uncorrelated, which is quite interesting. It indicates that a county having a higher or lower level of workers in one field does not necessarily inherently mean that another is much lower, it's more evenly split.
+
+![Correlations of geographical variables.](../figures/eda/heatmaps/corr_geography.png){#fig-corr-geo}
+
+A couple of interesting notes from the geographical correlations show us that the distance to coast is negatively correlated with forest coverage, temperature, and precipitation, while precipitation and elevation are negatively correlated as well. Unshockingly, elevation is positively correlated with terrain ruggedness.
+
+![Correlations of transportation variables.](../figures/eda/heatmaps/corr_transport.png){#fig-corr-trans}
+
+Finally, all of the transit variables make sense with one another. Walking or biking to work is negatively correlated with one's commute time and whether they drive alone, while working from home is positively correlated with access to internet.
+
+Another way to examine the data came with plotting the variables with the counties on maps of the US. This proved to be one of the better ways of story telling with the data, and gave a sneak peak into what the clusters might look like.
+
+![Map of annual precipitation in the US.](../figures/eda/maps/annual_precipitation_map.png){#fig-precip-map}
+
+This map of precipitation shows an interesting insight about the US. Not as much rainfall occurs in the middle of the country as it does in the west and so called "Tornado Alley", an apt name given its strong performance in this statistic.
+
+![Map of diversity in the US.](../figures/eda/maps/diversity_index_map.png){#fig-diversity-map}
+
+While some maps show a clear pattern, some take a little more effort to spot, such as this one of the diversity indexes of every county. It is clear that the southern US is more diverse on average, but within the south, parts of California, Texas, and Florida all reach the highest scores, while in the north, there are still some diversity strongholds like the Chicago and New York metro areas.
+
+![Map of forest coverage in the US.](../figures/eda/maps/forest_coverage_pct_map.png){#fig-forest-map}
+
+This map of forest coverage shows that much of the Great Plains have very little forest, something validated later by the clusters. Furthermore, the most forest areas stretch many different parts of the country, showing that outside of those places with little forest, the US is healthily covered in trees.
+
+![Map of population stability in the US.](../figures/eda/maps/pop_stability_index_map.png){#fig-psi-map}
+
+This map, while a bit noisy and messy, does show some interesting trends. The way the population stability index is calculated punishes both counties with fast growing populations and decreasing populations, with an emphasis on punishing the decreasing counties. So, it's not a surprise that mostly more rural counties across the country are given lower scores, while the general pattern of the north losing population and the south gaining is somewhat visible, but much more subtle than previously imagined.
+
+![Map of poverty rates in the US.](../figures/eda/maps/poverty_rate_map.png){#fig-poverty-map}
+
+This map of poverty rate shows just how under-served communities in the south and the plains region are. They, on average, have significantly higher poverty rates, with some counties reaching a dangerously high 40-50% poverty rate.
+
+![Map of RUCC codes in the US.](../figures/eda/maps/rucc_map.png){#fig-rucc-map}
+
+Using the RUCC codes, the difference between rural and urban counties is incredibly clear on the map. You can see major metropolitan areas like New York and their suburbs, and across the Midwest you see clusters of more urban counties around the cities like St. Louis, Kansas City, Oklahoma City, etc.
+
+![Map of terrain ruggedness in the US.](../figures/eda/maps/terrain_ruggedness_map.png){#fig-tr-map}
+
+This map is one of the clearer visualizations at showing the two major mountain ranges in the US, the Appalachian and Rocky Mountains. The Rockies tend to produce more rugged counties, counties whose standard deviation of their elevation is quite high, while the Appalachian mountains show high ruggedness in a part of the country that is otherwise relatively flat.
+
+These maps help provide even more context into the variables and the counties that this dataset is exploring, and build towards the next section: clustering.
+
+Further maps of every variable can be found in the interactive dashboard.
+
+## Clustering
+
+## Evaluating and Comparing Clusters
+
+## Exploring County Archetypes
+
+## Finding Similar Counties
+
+## Finding Unique Counties
+
+## Limitations and Future Work
+
+## Conclusion
+
+## Appendix {.unnumbered}
+
+### Appendix A: Data Dictionary {#appendix-a}
+
+| Variable | Formula (if applicable) | Source | Variable Name in Dataset | Methodology | Category |
+|----|----|----|----|----|----|
+| **GEOID** | N/A | TIGER | *GEOID* | Unique five digit identifier for each county | Identification |
+| **State FIPS Code** | N/A | TIGER | *STATEFP* | Identifies the state the county is in | Identification |
+| **County FIPS Code** | N/A | TIGER | *COUNTYFP* | Identifies the county | Identification |
+| **County Name** | N/A | TIGER | *county_name* | Identifies the county by name | Identification |
+| **Population** | N/A | ACS | *total_population* | Baseline population level | Demographics |
+| **Population density** | Population / Land Area | ACS + Census TIGER/Line | *population_density* | Accounts for county size by measuring population concentration rather than raw population | Demographics |
+| **5 year population change** | (2023 Population - 2018 Population) / 2018 Population | ACS 2023 vs ACS 2018 | *population_growth_5yr* | Measures recent population growth or decline | Demographics |
+| **Population Stability Index** | Custom exponential decay function | Engineered | *pop_stability_index* | Measures population stability, with higher values indicating more stable populations | Demographics |
+| **Median Age** | N/A | ACS | *median_age* | Shows how old the county population is | Demographics |
+| **Under 18%** | Sum of all residents under 18 / Population | ACS | *under_18_pct* | Shows the percentage of children in a county | Demographics |
+| **Over 65%** | Sum of all residents over 65 / Population | ACS | *over_65_pct* | Shows the percentage of seniors in a county | Demographics |
+| **Average Household Size** | N/A | ACS | *average_household_size* | Shows the average number of residents per household | Demographics |
+| **% Married** | Married residents / marital population | ACS | *married_pct* | Shows the percentage of married residents | Demographics |
+| **Diversity Index** | 1 - Sum of squared racial proportions | Engineered from ACS | *diversity_index* | Based on Simpson Diversity Index where values closer to 1 indicate greater diversity | Demographics |
+| **Foreign-born %** | Foreign-born population / Total population | ACS | *foreign_born_pct* | Measures the percentage of residents born outside the United States | Demographics |
+| **Veteran %** | Veterans / Adult population | ACS | *veteran_pct* | Measures the percentage of adult residents who are veterans | Demographics |
+| **Disability Rate** | Residents with disability / Total disability population | ACS | *disability_rate* | Measures prevalence of disability in county residents | Demographics |
+| **Urban/Rural Classification** | N/A | USDA Rural-Urban Continuum Codes | *RUCC_2023* | Classifies counties based on metropolitan status and rural characteristics | Demographics |
+| **High school graduate %** | High school graduates / Adult population | ACS | *high_school_pct* | Shows percentage of residents whose highest education is high school | Education |
+| **Some college %** | Some college + associates degree / Adult population | ACS | *some_college_pct* | Shows residents with post-secondary education below bachelor's degree | Education |
+| **Bachelor's graduate %** | Bachelor's degree holders / Adult population | ACS | *college_grad_pct* | Shows college education attainment | Education |
+| **Masters+ graduate %** | Graduate/professional degrees / Adult population | ACS | *masters_or_higher_pct* | Shows advanced education attainment | Education |
+| **Public School %** | Public school enrollment / Total enrollment | ACS | *public_school_pct* | Shows percentage of students attending public schools | Education |
+| **% of Households on SNAP** | SNAP Households / Total Households | ACS | *snap_pct* | Measures the percentage of households receiving Supplemental Nutrition Assistance Program benefits | Socioeconomic |
+| **Gini Index** | N/A | ACS | *gini_index* | Measures income inequality within a county, where higher values indicate greater inequality | Socioeconomic |
+| **Poverty Rate** | Residents below poverty line / Total population | ACS | *poverty_rate* | Measures the percentage of residents living below the federal poverty line | Socioeconomic |
+| **Median Household Income** | N/A | ACS | *median_household_income* | Measures the median income level of households within a county | Socioeconomic |
+| **Income Growth (inflation adjusted)** | (2023 Income - 2018 Income adjusted for inflation) / 2018 Income adjusted for inflation | ACS 2023 vs ACS 2018 + CPI adjustment | *income_growth* | Measures real income growth while accounting for inflation between time periods | Socioeconomic |
+| **Median Earnings** | N/A | ACS | *median_earnings* | Measures the median earnings of individual workers within a county | Socioeconomic |
+| **Median Gross Rent** | N/A | ACS | *median_gross_rent* | Measures typical rental costs within a county | Housing |
+| **Median Home Value** | N/A | ACS | *median_home_value* | Measures the typical value of owner-occupied homes within a county | Housing |
+| **Median Year Built** | N/A | ACS | *median_year_built* | Measures the median age of housing stock within a county | Housing |
+| **Housing Cost Burden** | Households spending 30%+ of income on rent / Total renter households | ACS | *housing_cost_burden_pct* | Measures housing affordability pressure among renters | Housing |
+| **Homeownership Rate** | Owner occupied homes / Occupied housing units | ACS | *homeownership_rate* | Measures the percentage of occupied housing units owned by residents | Housing |
+| **Vacancy Rate** | Vacant housing units / Total housing units | ACS | *vacancy_rate* | Measures the percentage of housing units currently vacant | Housing |
+| **Crowding Rate** | Crowded households / Occupied households | ACS | *crowding_rate* | Measures housing overcrowding based on residents per room | Housing |
+| **Unemployment Rate** | Unemployed workers / Labor force | ACS | *unemployment_rate* | Measures the percentage of workers actively seeking employment | Employment |
+| **Labor Force Participation** | Labor force / Population over 16 | ACS | *labor_participation_rate* | Measures the percentage of working-age residents participating in the labor force | Employment |
+| **% Agriculture** | Agricultural workers / Total employed population | ACS | *agriculture_pct* | Shows the share of employment tied to agriculture | Employment |
+| **% Construction** | Construction workers / Total employed population | ACS | *construction_pct* | Shows the share of employment tied to construction | Employment |
+| **% Manufacturing** | Manufacturing workers / Total employed population | ACS | *manufacturing_pct* | Shows the share of employment tied to manufacturing | Employment |
+| **% Arts/Tourism** | Arts and recreation workers / Total employed population | ACS | *arts_tourism_pct* | Shows the share of employment tied to arts, entertainment, and recreation industries | Employment |
+| **% Finance** | Finance workers / Total employed population | ACS | *finance_pct* | Shows the share of employment tied to finance and insurance industries | Employment |
+| **% Information** | Information workers / Total employed population | ACS | *information_pct* | Shows the share of employment tied to information industries | Employment |
+| **% Retail** | Retail workers / Total employed population | ACS | *retail_pct* | Shows the share of employment tied to retail industries | Employment |
+| **% Healthcare/Education** | Healthcare and education workers / Total employed population | ACS | *education_healthcare_pct* | Shows the share of employment tied to education and healthcare industries | Employment |
+| **% Government** | Government workers / Total employed population | ACS | *government_pct* | Shows the share of employment tied to government industries | Employment |
+| **% Professional/Technical** | Professional and technical workers / Total employed population | ACS | *technical_pct* | Shows the share of employment tied to professional, scientific, and technical industries | Employment |
+| **Average Commute Time** | N/A | ACS | *mean_commute_time* | Measures the average commute time for workers in minutes | Transportation |
+| **% Commute with Public Transit** | Public transit commuters / Total commuters | ACS | *public_transit_pct* | Measures reliance on public transportation for commuting to and from work | Transportation |
+| **% Walk/Bike to Work** | Walking + bicycle commuters / Total commuters | ACS | *walk_bike_to_work_pct* | Measures the percentage of commuters using active transportation methods to and from work | Transportation |
+| **% Drive Alone** | Drive alone commuters / Total commuters | ACS | *drive_alone_pct* | Measures dependence on individual vehicle commuting to and from work | Transportation |
+| **% Work from Home** | Work from home workers / Labor force | ACS | *work_from_home_pct* | Measures the percentage of workers who work remotely | Transportation |
+| **Broadband Internet Access %** | Households with internet subscription / Total households | ACS | *internet_access_pct* | Measures household access to internet services | Infrastructure |
+| **Homicide Rate** | N/A | County Health Rankings & Roadmaps | *homicide_rate* | Measures homicide prevalence within a county | Health/Safety |
+| **Suicide Rate** | N/A | County Health Rankings & Roadmaps | *suicide_rate* | Measures suicide prevalence within a county | Health/Safety |
+| **Firearm Fatalities** | N/A | County Health Rankings & Roadmaps | *firearm_deaths_rate* | Measures firearm-related mortality within a county | Health/Safety |
+| **Voter Turnout** | N/A | County Health Rankings & Roadmaps | *voter_turnout* | Measures civic participation through voter turnout | Civic Engagement |
+| **Democratic Vote Share %** | Democratic votes / Total votes | MIT Election Data and Science Lab County Presidential Election Returns | *dem_vote_share_2020* | Measures Democratic presidential vote share in the 2020 election | Politics |
+| **Party Competitiveness** | 1 - abs(Republican Vote Share - Democratic Vote Share) | Engineered from MIT Election Data and Science Lab County Presidential Election Returns | *party_competitiveness_2020* | Measures how competitive the two major parties were in the 2020 presidential election | Politics |
+| **20 Year Democrat Trend** | Democratic vote share 2020 - Democratic vote share 2000 | Engineered from MIT Election Data and Science Lab County Presidential Election Returns | *dem_swing_2000_2020* | Measures long-term change in Democratic presidential support | Politics |
+| **20 Year Competitiveness Trend** | Competitiveness 2020 - Competitiveness 2000 | Engineered from MIT Election Data and Science Lab County Presidential Election Returns | *comp_swing_2000_2020* | Measures whether counties have become more or less politically competitive over time | Politics |
+| **Land Area** | N/A | Census TIGER/Line | *land_area_sq_miles* | Measures county land area in square miles | Geography |
+| **Elevation** | N/A | USGS elevation data via elevatr | *mean_elevation* | Measures average elevation of county terrain | Geography |
+| **Terrain Ruggedness (Std Dev of Elevation)** | Standard deviation of elevation values within county | Engineered from elevation raster | *terrain_ruggedness* | Measures variation in terrain elevation, with higher values representing more rugged terrain | Geography |
+| **Water Coverage** | Water Area / Total Area | Census TIGER/Line | *water_coverage_pct* | Measures the percentage of county area covered by water | Geography |
+| **Distance to Coastline** | Distance between county centroid and nearest coastline | Natural Earth coastline + engineered | *distance_to_coast_miles* | Measures proximity of county center to coastline | Geography |
+| **Forest Coverage** | Forest Land Area / Sampled Land Area | FIA County Estimates | *forest_coverage_pct* | Measures the percentage of county land classified as forest | Geography |
+| **Mean Annual Temperature** | N/A | PRISM Climate Data | *mean_temp* | Measures average annual temperature | Climate |
+| **Annual Precipitation** | N/A | PRISM Climate Data | *annual_precip* | Measures average annual precipitation | Climate |
+| **Geometry** | N/A | Census TIGER/Line | *geometry* | County polygon geometry | Geography |
+
+: Table (x): Data Dictionary
+
+## References
+
+This project compiled data from the following sources:
+
+American Community Survey (ACS), 2023 5-Year Estimates.
+
+PRISM Climate Group. Oregon State University.
+
+United States Geological Survey (USGS).
+
+National Land Cover Database (NLCD).
+
+Forest Inventory and Analysis (FIA).
+
+County Health Rankings & Roadmaps.
+
+MIT Election Data and Science Lab County Presidential Election Returns. (or whichever dataset you actually used)
+
+United States Census Bureau TIGER/Line Shapefiles.
+
+Natural Earth Coastline.
+
+USDA Rural-Urban Continuum Codes.

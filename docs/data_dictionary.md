@@ -13,10 +13,11 @@ Data sources include:
 -   NLCD/FIA land coverage data
 -   County Health Rankings
 -   County Presidential Election Results
+-   Natural Earth Coastline
 -   Rural-Urban Continuum Codes
 
 | Variable | Formula (if applicable) | Source | Variable Name in Dataset | Methodology | Category |
-|----|----|----|----|----|----|
+|------------|------------|------------|------------|------------|------------|
 | **GEOID** | N/A | TIGER | *GEOID* | Unique five digit identifier for each county | Identification |
 | **State FIPS Code** | N/A | TIGER | *STATEFP* | Identifies the state the county is in | Identification |
 | **County FIPS Code** | N/A | TIGER | *COUNTYFP* | Identifies the county | Identification |

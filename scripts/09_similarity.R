@@ -162,11 +162,15 @@ weights <- c(
   average_household_size = 1,
   high_school_pct = 1,
   college_grad_pct = 1,
+  public_school_pct = 1,
   median_household_income = 1,
   unemployment_rate = 1,
+  gini_index = 1,
   poverty_rate = 1,
   housing_cost_burden_pct = 1,
   crowding_rate = 1,
+  median_gross_rent = 1,
+  labor_participation_rate = 1,
   agriculture_pct = 1,
   government_pct = 1,
   retail_pct = 1,
@@ -178,7 +182,7 @@ weights <- c(
   voter_turnout = 1,
   dem_vote_share_2020 = 1,
   party_competitiveness_2020 = 1,
-  terrain_ruggedness = .7, # Geographical variables had a lesser weight placed on them due to the similarities between geographics being strong, and not necessarily the scope of this project. 
+  terrain_ruggedness = .7,
   forest_coverage_pct = .5,
   water_coverage_pct = .5,
   annual_precip = .5,
@@ -191,6 +195,11 @@ scaled_data <- similarity_finished |>
   column_to_rownames("GEOID") |>
   scale()
 
+similarity_center <- attr(scaled_data, "scaled:center")
+similarity_scale <- attr(scaled_data, "scaled:scale")
+
+saveRDS(list(center = similarity_center, scale = similarity_scale, weights = weights), 
+        "data/finished/similarity_parameters.rds")
 scaled_data_weighted <- sweep(
   scaled_data,
   2,

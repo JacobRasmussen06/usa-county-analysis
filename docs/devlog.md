@@ -96,3 +96,15 @@ Run the second and third round of clustering and build the engine that finds sim
 -   Decided to run both hierarchical clustering and GMM clustering to have an even wider net of clustering info to build the similarity and county types off of
 -   Based off testing on several counties, some weights for the scaled variables were added to make the similarity engine slightly more accurate. Geographic variables were all affected and weighed less by varying degrees. Check the 09_similarity.R for more information.
 -   Decided to use 50 closest counties for isolation uniqueness, neighbors and neighbors' neighbors for neighbor uniqueness, and added weights to each uniqueness type to create the combined uniqueness. Check 10_uniqueness.R for more information.
+
+### Week of August 3rd, 2026
+
+#### Goal
+
+By the end of the week, finish the prototype for the dashboard, start the interactive map, and make meaningful progress on the report
+
+#### Progress
+
+-   Created skeleton for the dashboard
+
+-   Finished a first type of the county explorer page

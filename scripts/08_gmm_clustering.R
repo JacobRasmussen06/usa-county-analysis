@@ -362,6 +362,13 @@ write_csv(ari_comparison,"data/finished/cluster_method_comparison.csv")
 # Analyzing Specific Counties in Clusters
 #############################################################################
 
+gmm_sizes <- gmm_cluster_summary |> 
+  select(gmm_cluster, counties)
+gmm_profiles <- gmm_profiles |> 
+  left_join(gmm_sizes, by = "gmm_cluster")
+gmm_profiles <- gmm_profiles |> 
+  rename(cluster = gmm_cluster, size = counties) 
+
 # Representative counties
 gmm_clustered <- gmm_scaled |>
   as.data.frame() |>
@@ -397,7 +404,17 @@ gmm_representatives_named <- gmm_reps |>
     county |> st_drop_geometry() |> select(GEOID, county_name),
     by = "GEOID"
   ) |>
-  select(cluster, county_name, distance_to_center)
+  select(cluster, county_name, distance_to_center) |> 
+  mutate(cluster = as.numeric(cluster))
+
+gmm_profiles_final <- gmm_profiles |> 
+  mutate(
+    cluster = as.numeric(cluster)
+  ) |>
+  left_join(
+    gmm_representatives_named,
+    by = "cluster"
+  )
 
 # Largest counties in the cluster
 largest_counties <- county |>
@@ -406,6 +423,10 @@ largest_counties <- county |>
   arrange(desc(total_population)) |>
   select(GEOID, gmm_cluster, county_name, total_population) |> 
   slice_head(n=5)
+
+saveRDS(gmm_profiles_final, "data/final/gmm_clusters_profiles.rds")
+saveRDS(largest_counties, "data/final/gmm_largest_counties.rds")
+saveRDS(gmm_probabilities, "data/final/gmm_cluster_probabilities.rds")
 
 #############################################################################
 # End of Script

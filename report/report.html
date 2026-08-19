@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>report</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="report_files/libs/clipboard/clipboard.min.js"></script>
+<script src="report_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="report_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="report_files/libs/quarto-html/popper.min.js"></script>
+<script src="report_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="report_files/libs/quarto-html/anchor.min.js"></script>
+<link href="report_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="report_files/libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="report_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="report_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="report_files/libs/bootstrap/bootstrap-efbb37e9afcc02144ebbc7afd12a776f.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">report</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="placeholder-title" class="level1">
+<h1>(placeholder title)</h1>
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>In the United States, there are 3,109 counties/county-equivalents across the continental part of the country (the ‘lower 48’ and the District of Columbia). These counties stretch from the mega city environment of New York County, New York, to the most sparse rural life of Loving, Texas. Every county has something unique to offer, but there are patterns you see in some counties. Pick a random county, and it is likely pretty similar to counties nearby, which raises an interesting question: how are counties similar and different from each other.</p>
+<p>More specifically, can we group counties together meaningfully with publicly available data? This project aims to answer that question.</p>
+<p>Traditional geographic classifications often rely on simpler statistics, like population or their status as urban or rural, it’s evident there are more complex patterns beneath the surface. Unsupervised machine learning provides an opportunity to uncover these patterns and use them to group counties together.</p>
+<p>This project develops a pipeline of data that contains information on a county’s demographics, economics, education, employment, crime, politics, geography, and climate, explores the makeup of the United States based on the variables in the pipeline, and then explores three different approaches to cluster the counties: principal component analysis (PCA), hierarchical clustering (HC or HCA), and Gaussian mixture model clustering (GMM). Through these approaches, meaningfully significant archetypes of U.S. counties were found, and an engine of similar and unique counties was created.</p>
+<p>Finally, the results of this project were synthesized to create a dashboard and an interactive map so that readers can more interactively explore the counties of the United States.</p>
+</section>
+<section id="data-documentation" class="level2">
+<h2 class="anchored" data-anchor-id="data-documentation">Data Documentation</h2>
+<p>Several different data sources were processed and cleaned to craft a final dataset. To see the detailed dictionary of all the variables in the dataset, refer to <a href="#appendix-a">Appendix A</a>.</p>
+<section id="data-sources" class="level3">
+<h3 class="anchored" data-anchor-id="data-sources">Data Sources</h3>
+<section id="american-community-survey-acs" class="level4">
+<h4 class="anchored" data-anchor-id="american-community-survey-acs">American Community Survey (ACS)</h4>
+<p>The American Community Survey 2023 5 year estimates served as the primary source of the demographic, housing, economic, and educational characteristics of counties. Variables like median household income, median age, poverty rate, educational attainment, and much more were obtained from the ACS. Furthermore, the 2018 ACS was also used to construct 5 year changes in income and population, the latter of which being used to construct a population stability index. A diversity index was also engineered using race data from the ACS.</p>
+</section>
+<section id="tigerline-geography" class="level4">
+<h4 class="anchored" data-anchor-id="tigerline-geography">TIGER/Line Geography</h4>
+<p>TIGER/Line county boundaries were used as the backbone for all geographic visualizations throughout the project. In addition to county boundaries, TIGER/Line was the data source for a county’s land area and its water coverage percentage.</p>
+</section>
+<section id="prism-climate-normals" class="level4">
+<h4 class="anchored" data-anchor-id="prism-climate-normals">PRISM Climate Normals</h4>
+<p>PRISM Climate normals were processed and used to characterize long-term conditions in a county’s climate. Mean annual temperature and annual precipitation were obtained from this data source.</p>
+</section>
+<section id="usgs-elevation" class="level4">
+<h4 class="anchored" data-anchor-id="usgs-elevation">USGS Elevation</h4>
+<p>Via the R package elevatr, USGS elevation rasters were obtained and summarize to produce a county’s mean elevation and the ruggedness (standard deviation) of its terrain.</p>
+</section>
+<section id="nlcd-fia-land-cover" class="level4">
+<h4 class="anchored" data-anchor-id="nlcd-fia-land-cover">NLCD / FIA Land Cover</h4>
+<p>National Land Cover Database and Forest Inventory and Analysis products were used to estimate forest coverage, the amount of land in a county that is forested.</p>
+</section>
+<section id="county-health-rankings-roadmaps-chrr" class="level4">
+<h4 class="anchored" data-anchor-id="county-health-rankings-roadmaps-chrr">County Health Rankings &amp; Roadmaps (CHR&amp;R)</h4>
+<p>The CHR&amp;R was the data source for the homicide rate, suicide rate, and firearm fatalities of a county, as well as its voter turnout in the 2020 election.</p>
+</section>
+<section id="mit-election-data-and-science-lab-county-presidential-election-returns" class="level4">
+<h4 class="anchored" data-anchor-id="mit-election-data-and-science-lab-county-presidential-election-returns">MIT Election Data and Science Lab County Presidential Election Returns</h4>
+<p>The MIT Election Data served as the data source for the political variables of the dataset. These variables include the percentage of votes the Democratic party earned in the 2020 election, as well as three engineered variables: party competitiveness, and 20 year changes in both democratic vote share and party competitiveness.</p>
+</section>
+<section id="rural-urban-continuum-codes" class="level4">
+<h4 class="anchored" data-anchor-id="rural-urban-continuum-codes">Rural Urban Continuum Codes</h4>
+<p>The USDA Rural Urban Continuum Codes were used to effectively distinguish metropolitan counties from rural counties, validate the results of a particular decision made, and provide standardized metrics of urbanization among counties.</p>
+<p>Overall, the data pipeline for this project was thorough, containing several data sources and steps. First data was obtained in raw form. Then, it was cleaned, and variables were engineered. Then, every source was merged into one dataset using a county’s 5 digit identifier, referred to as its GEOID in the project. Following the merger, the dataset was used as the backbone to clustering analysis. Finally, the dataset was used as an engine to be used in the accompanying Shiny Dashboard and Interactive Map. The full pipeline of data can be found in the first three scripts of the scripts folder, found in the accompanying GitHub repository.</p>
+</section>
+</section>
+</section>
+<section id="data-exploration" class="level2">
+<h2 class="anchored" data-anchor-id="data-exploration">Data Exploration</h2>
+</section>
+<section id="clustering" class="level2">
+<h2 class="anchored" data-anchor-id="clustering">Clustering</h2>
+</section>
+<section id="evaluating-and-comparing-clusters" class="level2">
+<h2 class="anchored" data-anchor-id="evaluating-and-comparing-clusters">Evaluating and Comparing Clusters</h2>
+</section>
+<section id="exploring-county-archetypes" class="level2">
+<h2 class="anchored" data-anchor-id="exploring-county-archetypes">Exploring County Archetypes</h2>
+</section>
+<section id="finding-similar-counties" class="level2">
+<h2 class="anchored" data-anchor-id="finding-similar-counties">Finding Similar Counties</h2>
+</section>
+<section id="finding-unique-counties" class="level2">
+<h2 class="anchored" data-anchor-id="finding-unique-counties">Finding Unique Counties</h2>
+</section>
+<section id="limitations-and-future-work" class="level2">
+<h2 class="anchored" data-anchor-id="limitations-and-future-work">Limitations and Future Work</h2>
+</section>
+<section id="conclusion" class="level2">
+<h2 class="anchored" data-anchor-id="conclusion">Conclusion</h2>
+</section>
+<section id="appendix" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="appendix">Appendix</h2>
+<section id="appendix-a" class="level3">
+<h3 class="anchored" data-anchor-id="appendix-a">Appendix A: Data Dictionary</h3>
+<table class="caption-top table">
+<caption>Table (x): Data Dictionary</caption>
+<colgroup>
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Variable</th>
+<th>Formula (if applicable)</th>
+<th>Source</th>
+<th>Variable Name in Dataset</th>
+<th>Methodology</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>GEOID</strong></td>
+<td>N/A</td>
+<td>TIGER</td>
+<td><em>GEOID</em></td>
+<td>Unique five digit identifier for each county</td>
+<td>Identification</td>
+</tr>
+<tr class="even">
+<td><strong>State FIPS Code</strong></td>
+<td>N/A</td>
+<td>TIGER</td>
+<td><em>STATEFP</em></td>
+<td>Identifies the state the county is in</td>
+<td>Identification</td>
+</tr>
+<tr class="odd">
+<td><strong>County FIPS Code</strong></td>
+<td>N/A</td>
+<td>TIGER</td>
+<td><em>COUNTYFP</em></td>
+<td>Identifies the county</td>
+<td>Identification</td>
+</tr>
+<tr class="even">
+<td><strong>County Name</strong></td>
+<td>N/A</td>
+<td>TIGER</td>
+<td><em>county_name</em></td>
+<td>Identifies the county by name</td>
+<td>Identification</td>
+</tr>
+<tr class="odd">
+<td><strong>Population</strong></td>
+<td>N/A</td>
+<td>ACS</td>
+<td><em>total_population</em></td>
+<td>Baseline population level</td>
+<td>Demographics</td>
+</tr>
+<tr class="even">
+<td><strong>Population density</strong></td>
+<td>Population / Land Area</td>
+<td>ACS + Census TIGER/Line</td>
+<td><em>population_density</em></td>
+<td>Accounts for county size by measuring population concentration rather than raw population</td>
+<td>Demographics</td>
+</tr>
+<tr class="odd">
+<td><strong>5 year population change</strong></td>
+<td>(2023 Population - 2018 Population) / 2018 Population</td>
+<td>ACS 2023 vs ACS 2018</td>
+<td><em>population_growth_5yr</em></td>
+<td>Measures recent population growth or decline</td>
+<td>Demographics</td>
+</tr>
+<tr class="even">
+<td><strong>Population Stability Index</strong></td>
+<td>Custom exponential decay function</td>
+<td>Engineered</td>
+<td><em>pop_stability_index</em></td>
+<td>Measures population stability, with higher values indicating more stable populations</td>
+<td>Demographics</td>
+</tr>
+<tr class="odd">
+<td><strong>Median Age</strong></td>
+<td>N/A</td>
+<td>ACS</td>
+<td><em>median_age</em></td>
+<td>Shows how old the county population is</td>
+<td>Demographics</td>
+</tr>
+<tr class="even">
+<td><strong>Under 18%</strong></td>
+<td>Sum of all residents under 18 / Population</td>
+<td>ACS</td>
+<td><em>under_18_pct</em></td>
+<td>Shows the percentage of children in a county</td>
+<td>Demographics</td>
+</tr>
+<tr class="odd">
+<td><strong>Over 65%</strong></td>
+<td>Sum of all residents over 65 / Population</td>
+<td>ACS</td>
+<td><em>over_65_pct</em></td>
+<td>Shows the percentage of seniors in a county</td>
+<td>Demographics</td>
+</tr>
+<tr class="even">
+<td><strong>Average Household Size</strong></td>
+<td>N/A</td>
+<td>ACS</td>
+<td><em>average_household_size</em></td>
+<td>Shows the average number of residents per household</td>
+<td>Demographics</td>
+</tr>
+<tr class="odd">
+<td><strong>% Married</strong></td>
+<td>Married residents / marital population</td>
+<td>ACS</td>
+<td><em>married_pct</em></td>
+<td>Shows the percentage of married residents</td>
+<td>Demographics</td>
+</tr>
+<tr class="even">
+<td><strong>Diversity Index</strong></td>
+<td>1 - Sum of squared racial proportions</td>
+<td>Engineered from ACS</td>
+<td><em>diversity_index</em></td>
+<td>Based on Simpson Diversity Index where values closer to 1 indicate greater diversity</td>
+<td>Demographics</td>
+</tr>
+<tr class="odd">
+<td><strong>Foreign-born %</strong></td>
+<td>Foreign-born population / Total population</td>
+<td>ACS</td>
+<td><em>foreign_born_pct</em></td>
+<td>Measures the percentage of residents born outside the United States</td>
+<td>Demographics</td>
+</tr>
+<tr class="even">
+<td><strong>Veteran %</strong></td>
+<td>Veterans / Adult population</td>
+<td>ACS</td>
+<td><em>veteran_pct</em></td>
+<td>Measures the percentage of adult residents who are veterans</td>
+<td>Demographics</td>
+</tr>
+<tr class="odd">
+<td><strong>Disability Rate</strong></td>
+<td>Residents with disability / Total disability population</td>
+<td>ACS</td>
+<td><em>disability_rate</em></td>
+<td>Measures prevalence of disability in county residents</td>
+<td>Demographics</td>
+</tr>
+<tr class="even">
+<td><strong>Urban/Rural Classification</strong></td>
+<td>N/A</td>
+<td>USDA Rural-Urban Continuum Codes</td>
+<td><em>RUCC_2023</em></td>
+<td>Classifies counties based on metropolitan status and rural characteristics</td>
+<td>Demographics</td>
+</tr>
+<tr class="odd">
+<td><strong>High school graduate %</strong></td>
+<td>High school graduates / Adult population</td>
+<td>ACS</td>
+<td><em>high_school_pct</em></td>
+<td>Shows percentage of residents whose highest education is high school</td>
+<td>Education</td>
+</tr>
+<tr class="even">
+<td><strong>Some college %</strong></td>
+<td>Some college + associates degree / Adult population</td>
+<td>ACS</td>
+<td><em>some_college_pct</em></td>
+<td>Shows residents with post-secondary education below bachelor’s degree</td>
+<td>Education</td>
+</tr>
+<tr class="odd">
+<td><strong>Bachelor’s graduate %</strong></td>
+<td>Bachelor’s degree holders / Adult population</td>
+<td>ACS</td>
+<td><em>college_grad_pct</em></td>
+<td>Shows college education attainment</td>
+<td>Education</td>
+</tr>
+<tr class="even">
+<td><strong>Masters+ graduate %</strong></td>
+<td>Graduate/professional degrees / Adult population</td>
+<td>ACS</td>
+<td><em>masters_or_higher_pct</em></td>
+<td>Shows advanced education attainment</td>
+<td>Education</td>
+</tr>
+<tr class="odd">
+<td><strong>Public School %</strong></td>
+<td>Public school enrollment / Total enrollment</td>
+<td>ACS</td>
+<td><em>public_school_pct</em></td>
+<td>Shows percentage of students attending public schools</td>
+<td>Education</td>
+</tr>
+<tr class="even">
+<td><strong>% of Households on SNAP</strong></td>
+<td>SNAP Households / Total Households</td>
+<td>ACS</td>
+<td><em>snap_pct</em></td>
+<td>Measures the percentage of households receiving Supplemental Nutrition Assistance Program benefits</td>
+<td>Socioeconomic</td>
+</tr>
+<tr class="odd">
+<td><strong>Gini Index</strong></td>
+<td>N/A</td>
+<td>ACS</td>
+<td><em>gini_index</em></td>
+<td>Measures income inequality within a county, where higher values indicate greater inequality</td>
+<td>Socioeconomic</td>
+</tr>
+<tr class="even">
+<td><strong>Poverty Rate</strong></td>
+<td>Residents below poverty line / Total population</td>
+<td>ACS</td>
+<td><em>poverty_rate</em></td>
+<td>Measures the percentage of residents living below the federal poverty line</td>
+<td>Socioeconomic</td>
+</tr>
+<tr class="odd">
+<td><strong>Median Household Income</strong></td>
+<td>N/A</td>
+<td>ACS</td>
+<td><em>median_household_income</em></td>
+<td>Measures the median income level of households within a county</td>
+<td>Socioeconomic</td>
+</tr>
+<tr class="even">
+<td><strong>Income Growth (inflation adjusted)</strong></td>
+<td>(2023 Income - 2018 Income adjusted for inflation) / 2018 Income adjusted for inflation</td>
+<td>ACS 2023 vs ACS 2018 + CPI adjustment</td>
+<td><em>income_growth</em></td>
+<td>Measures real income growth while accounting for inflation between time periods</td>
+<td>Socioeconomic</td>
+</tr>
+<tr class="odd">
+<td><strong>Median Earnings</strong></td>
+<td>N/A</td>
+<td>ACS</td>
+<td><em>median_earnings</em></td>
+<td>Measures the median earnings of individual workers within a county</td>
+<td>Socioeconomic</td>
+</tr>
+<tr class="even">
+<td><strong>Median Gross Rent</strong></td>
+<td>N/A</td>
+<td>ACS</td>
+<td><em>median_gross_rent</em></td>
+<td>Measures typical rental costs within a county</td>
+<td>Housing</td>
+</tr>
+<tr class="odd">
+<td><strong>Median Home Value</strong></td>
+<td>N/A</td>
+<td>ACS</td>
+<td><em>median_home_value</em></td>
+<td>Measures the typical value of owner-occupied homes within a county</td>
+<td>Housing</td>
+</tr>
+<tr class="even">
+<td><strong>Median Year Built</strong></td>
+<td>N/A</td>
+<td>ACS</td>
+<td><em>median_year_built</em></td>
+<td>Measures the median age of housing stock within a county</td>
+<td>Housing</td>
+</tr>
+<tr class="odd">
+<td><strong>Housing Cost Burden</strong></td>
+<td>Households spending 30%+ of income on rent / Total renter households</td>
+<td>ACS</td>
+<td><em>housing_cost_burden_pct</em></td>
+<td>Measures housing affordability pressure among renters</td>
+<td>Housing</td>
+</tr>
+<tr class="even">
+<td><strong>Homeownership Rate</strong></td>
+<td>Owner occupied homes / Occupied housing units</td>
+<td>ACS</td>
+<td><em>homeownership_rate</em></td>
+<td>Measures the percentage of occupied housing units owned by residents</td>
+<td>Housing</td>
+</tr>
+<tr class="odd">
+<td><strong>Vacancy Rate</strong></td>
+<td>Vacant housing units / Total housing units</td>
+<td>ACS</td>
+<td><em>vacancy_rate</em></td>
+<td>Measures the percentage of housing units currently vacant</td>
+<td>Housing</td>
+</tr>
+<tr class="even">
+<td><strong>Crowding Rate</strong></td>
+<td>Crowded households / Occupied households</td>
+<td>ACS</td>
+<td><em>crowding_rate</em></td>
+<td>Measures housing overcrowding based on residents per room</td>
+<td>Housing</td>
+</tr>
+<tr class="odd">
+<td><strong>Unemployment Rate</strong></td>
+<td>Unemployed workers / Labor force</td>
+<td>ACS</td>
+<td><em>unemployment_rate</em></td>
+<td>Measures the percentage of workers actively seeking employment</td>
+<td>Employment</td>
+</tr>
+<tr class="even">
+<td><strong>Labor Force Participation</strong></td>
+<td>Labor force / Population over 16</td>
+<td>ACS</td>
+<td><em>labor_participation_rate</em></td>
+<td>Measures the percentage of working-age residents participating in the labor force</td>
+<td>Employment</td>
+</tr>
+<tr class="odd">
+<td><strong>% Agriculture</strong></td>
+<td>Agricultural workers / Total employed population</td>
+<td>ACS</td>
+<td><em>agriculture_pct</em></td>
+<td>Shows the share of employment tied to agriculture</td>
+<td>Employment</td>
+</tr>
+<tr class="even">
+<td><strong>% Construction</strong></td>
+<td>Construction workers / Total employed population</td>
+<td>ACS</td>
+<td><em>construction_pct</em></td>
+<td>Shows the share of employment tied to construction</td>
+<td>Employment</td>
+</tr>
+<tr class="odd">
+<td><strong>% Manufacturing</strong></td>
+<td>Manufacturing workers / Total employed population</td>
+<td>ACS</td>
+<td><em>manufacturing_pct</em></td>
+<td>Shows the share of employment tied to manufacturing</td>
+<td>Employment</td>
+</tr>
+<tr class="even">
+<td><strong>% Arts/Tourism</strong></td>
+<td>Arts and recreation workers / Total employed population</td>
+<td>ACS</td>
+<td><em>arts_tourism_pct</em></td>
+<td>Shows the share of employment tied to arts, entertainment, and recreation industries</td>
+<td>Employment</td>
+</tr>
+<tr class="odd">
+<td><strong>% Finance</strong></td>
+<td>Finance workers / Total employed population</td>
+<td>ACS</td>
+<td><em>finance_pct</em></td>
+<td>Shows the share of employment tied to finance and insurance industries</td>
+<td>Employment</td>
+</tr>
+<tr class="even">
+<td><strong>% Information</strong></td>
+<td>Information workers / Total employed population</td>
+<td>ACS</td>
+<td><em>information_pct</em></td>
+<td>Shows the share of employment tied to information industries</td>
+<td>Employment</td>
+</tr>
+<tr class="odd">
+<td><strong>% Retail</strong></td>
+<td>Retail workers / Total employed population</td>
+<td>ACS</td>
+<td><em>retail_pct</em></td>
+<td>Shows the share of employment tied to retail industries</td>
+<td>Employment</td>
+</tr>
+<tr class="even">
+<td><strong>% Healthcare/Education</strong></td>
+<td>Healthcare and education workers / Total employed population</td>
+<td>ACS</td>
+<td><em>education_healthcare_pct</em></td>
+<td>Shows the share of employment tied to education and healthcare industries</td>
+<td>Employment</td>
+</tr>
+<tr class="odd">
+<td><strong>% Government</strong></td>
+<td>Government workers / Total employed population</td>
+<td>ACS</td>
+<td><em>government_pct</em></td>
+<td>Shows the share of employment tied to government industries</td>
+<td>Employment</td>
+</tr>
+<tr class="even">
+<td><strong>% Professional/Technical</strong></td>
+<td>Professional and technical workers / Total employed population</td>
+<td>ACS</td>
+<td><em>technical_pct</em></td>
+<td>Shows the share of employment tied to professional, scientific, and technical industries</td>
+<td>Employment</td>
+</tr>
+<tr class="odd">
+<td><strong>Average Commute Time</strong></td>
+<td>N/A</td>
+<td>ACS</td>
+<td><em>mean_commute_time</em></td>
+<td>Measures the average commute time for workers in minutes</td>
+<td>Transportation</td>
+</tr>
+<tr class="even">
+<td><strong>% Commute with Public Transit</strong></td>
+<td>Public transit commuters / Total commuters</td>
+<td>ACS</td>
+<td><em>public_transit_pct</em></td>
+<td>Measures reliance on public transportation for commuting to and from work</td>
+<td>Transportation</td>
+</tr>
+<tr class="odd">
+<td><strong>% Walk/Bike to Work</strong></td>
+<td>Walking + bicycle commuters / Total commuters</td>
+<td>ACS</td>
+<td><em>walk_bike_to_work_pct</em></td>
+<td>Measures the percentage of commuters using active transportation methods to and from work</td>
+<td>Transportation</td>
+</tr>
+<tr class="even">
+<td><strong>% Drive Alone</strong></td>
+<td>Drive alone commuters / Total commuters</td>
+<td>ACS</td>
+<td><em>drive_alone_pct</em></td>
+<td>Measures dependence on individual vehicle commuting to and from work</td>
+<td>Transportation</td>
+</tr>
+<tr class="odd">
+<td><strong>% Work from Home</strong></td>
+<td>Work from home workers / Labor force</td>
+<td>ACS</td>
+<td><em>work_from_home_pct</em></td>
+<td>Measures the percentage of workers who work remotely</td>
+<td>Transportation</td>
+</tr>
+<tr class="even">
+<td><strong>Broadband Internet Access %</strong></td>
+<td>Households with internet subscription / Total households</td>
+<td>ACS</td>
+<td><em>internet_access_pct</em></td>
+<td>Measures household access to internet services</td>
+<td>Infrastructure</td>
+</tr>
+<tr class="odd">
+<td><strong>Homicide Rate</strong></td>
+<td>N/A</td>
+<td>County Health Rankings &amp; Roadmaps</td>
+<td><em>homicide_rate</em></td>
+<td>Measures homicide prevalence within a county</td>
+<td>Health/Safety</td>
+</tr>
+<tr class="even">
+<td><strong>Suicide Rate</strong></td>
+<td>N/A</td>
+<td>County Health Rankings &amp; Roadmaps</td>
+<td><em>suicide_rate</em></td>
+<td>Measures suicide prevalence within a county</td>
+<td>Health/Safety</td>
+</tr>
+<tr class="odd">
+<td><strong>Firearm Fatalities</strong></td>
+<td>N/A</td>
+<td>County Health Rankings &amp; Roadmaps</td>
+<td><em>firearm_deaths_rate</em></td>
+<td>Measures firearm-related mortality within a county</td>
+<td>Health/Safety</td>
+</tr>
+<tr class="even">
+<td><strong>Voter Turnout</strong></td>
+<td>N/A</td>
+<td>County Health Rankings &amp; Roadmaps</td>
+<td><em>voter_turnout</em></td>
+<td>Measures civic participation through voter turnout</td>
+<td>Civic Engagement</td>
+</tr>
+<tr class="odd">
+<td><strong>Democratic Vote Share %</strong></td>
+<td>Democratic votes / Total votes</td>
+<td>MIT Election Data and Science Lab County Presidential Election Returns</td>
+<td><em>dem_vote_share_2020</em></td>
+<td>Measures Democratic presidential vote share in the 2020 election</td>
+<td>Politics</td>
+</tr>
+<tr class="even">
+<td><strong>Party Competitiveness</strong></td>
+<td>1 - abs(Republican Vote Share - Democratic Vote Share)</td>
+<td>Engineered from MIT Election Data and Science Lab County Presidential Election Returns</td>
+<td><em>party_competitiveness_2020</em></td>
+<td>Measures how competitive the two major parties were in the 2020 presidential election</td>
+<td>Politics</td>
+</tr>
+<tr class="odd">
+<td><strong>20 Year Democrat Trend</strong></td>
+<td>Democratic vote share 2020 - Democratic vote share 2000</td>
+<td>Engineered from MIT Election Data and Science Lab County Presidential Election Returns</td>
+<td><em>dem_swing_2000_2020</em></td>
+<td>Measures long-term change in Democratic presidential support</td>
+<td>Politics</td>
+</tr>
+<tr class="even">
+<td><strong>20 Year Competitiveness Trend</strong></td>
+<td>Competitiveness 2020 - Competitiveness 2000</td>
+<td>Engineered from MIT Election Data and Science Lab County Presidential Election Returns</td>
+<td><em>comp_swing_2000_2020</em></td>
+<td>Measures whether counties have become more or less politically competitive over time</td>
+<td>Politics</td>
+</tr>
+<tr class="odd">
+<td><strong>Land Area</strong></td>
+<td>N/A</td>
+<td>Census TIGER/Line</td>
+<td><em>land_area_sq_miles</em></td>
+<td>Measures county land area in square miles</td>
+<td>Geography</td>
+</tr>
+<tr class="even">
+<td><strong>Elevation</strong></td>
+<td>N/A</td>
+<td>USGS elevation data via elevatr</td>
+<td><em>mean_elevation</em></td>
+<td>Measures average elevation of county terrain</td>
+<td>Geography</td>
+</tr>
+<tr class="odd">
+<td><strong>Terrain Ruggedness (Std Dev of Elevation)</strong></td>
+<td>Standard deviation of elevation values within county</td>
+<td>Engineered from elevation raster</td>
+<td><em>terrain_ruggedness</em></td>
+<td>Measures variation in terrain elevation, with higher values representing more rugged terrain</td>
+<td>Geography</td>
+</tr>
+<tr class="even">
+<td><strong>Water Coverage</strong></td>
+<td>Water Area / Total Area</td>
+<td>Census TIGER/Line</td>
+<td><em>water_coverage_pct</em></td>
+<td>Measures the percentage of county area covered by water</td>
+<td>Geography</td>
+</tr>
+<tr class="odd">
+<td><strong>Distance to Coastline</strong></td>
+<td>Distance between county centroid and nearest coastline</td>
+<td>Natural Earth coastline + engineered</td>
+<td><em>distance_to_coast_miles</em></td>
+<td>Measures proximity of county center to coastline</td>
+<td>Geography</td>
+</tr>
+<tr class="even">
+<td><strong>Forest Coverage</strong></td>
+<td>Forest Land Area / Sampled Land Area</td>
+<td>FIA County Estimates</td>
+<td><em>forest_coverage_pct</em></td>
+<td>Measures the percentage of county land classified as forest</td>
+<td>Geography</td>
+</tr>
+<tr class="odd">
+<td><strong>Mean Annual Temperature</strong></td>
+<td>N/A</td>
+<td>PRISM Climate Data</td>
+<td><em>mean_temp</em></td>
+<td>Measures average annual temperature</td>
+<td>Climate</td>
+</tr>
+<tr class="even">
+<td><strong>Annual Precipitation</strong></td>
+<td>N/A</td>
+<td>PRISM Climate Data</td>
+<td><em>annual_precip</em></td>
+<td>Measures average annual precipitation</td>
+<td>Climate</td>
+</tr>
+<tr class="odd">
+<td><strong>Geometry</strong></td>
+<td>N/A</td>
+<td>Census TIGER/Line</td>
+<td><em>geometry</em></td>
+<td>County polygon geometry</td>
+<td>Geography</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<p>This project compiled data from the following sources:</p>
+<p>American Community Survey (ACS), 2023 5-Year Estimates.</p>
+<p>PRISM Climate Group. Oregon State University.</p>
+<p>United States Geological Survey (USGS).</p>
+<p>National Land Cover Database (NLCD).</p>
+<p>Forest Inventory and Analysis (FIA).</p>
+<p>County Health Rankings &amp; Roadmaps.</p>
+<p>MIT Election Data and Science Lab County Presidential Election Returns. (or whichever dataset you actually used)</p>
+<p>United States Census Bureau TIGER/Line Shapefiles.</p>
+<p>Natural Earth Coastline.</p>
+<p>USDA Rural-Urban Continuum Codes.</p>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

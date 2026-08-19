@@ -303,7 +303,7 @@ adjustedRandIndex(
 #############################################################################
 # Cluster Profiles
 #############################################################################
-
+clustersize <- tibble(table(km13$cluster))
 cluster_profiles_pc20 <- county_clusters |>
   filter(!is.na(cluster13)) |>
   st_drop_geometry() |>
@@ -311,7 +311,8 @@ cluster_profiles_pc20 <- county_clusters |>
   summarise(
     across(
       where(is.numeric),
-      ~mean(.x, na.rm = TRUE)))
+      ~mean(.x, na.rm = TRUE))) |> 
+
 
 profile_scaled_20 <- cluster_profiles_pc20 |>
   column_to_rownames("cluster13") |>
@@ -389,6 +390,9 @@ cluster_sizes <- county_clusters |>
     counties = n()
   ) |>
   ungroup()
+
+cluster_profiles_final <- cluster_profiles_pc20 |> 
+  left_join(cluster_sizes, by = "cluster13")
 
 cluster_size_chart <- ggplot(
   cluster_sizes,
@@ -481,7 +485,33 @@ representatives_named <- representatives |>
     county |> select(GEOID, county_name),
     by = "GEOID"
   ) |>
-  select(cluster, county_name, distance_to_center)
+  rename(
+    rep_name = county_name
+  ) |>
+  select(
+    cluster,
+    rep_name,
+    distance_to_center
+  )
+
+
+cluster_profiles_final <- cluster_profiles_final |> 
+  mutate(
+    cluster = as.numeric(cluster13)
+  ) |>
+  left_join(
+    representatives_named,
+    by = "cluster"
+  )
+
+cluster_profiles_final <- cluster_profiles_final |>
+  left_join(
+    pca_cluster_types |>
+      select(cluster, cluster_name, cluster_color),
+    by = "cluster"
+  )
+
+saveRDS(cluster_profiles_final, "data/final/pca_clusters_profiles.rds")
 
 largest_counties <- county |>
   left_join(
@@ -493,6 +523,7 @@ largest_counties <- county |>
   slice_head(n = 3) |>
   select(cluster, county_name, total_population)
 
+saveRDS(largest_counties, "data/final/pca_largest_counties.rds")
 #############################################################################
 # Save a Cluster Dataset
 #############################################################################

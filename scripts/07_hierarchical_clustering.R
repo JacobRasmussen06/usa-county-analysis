@@ -324,7 +324,6 @@ hc_cluster_summary <- county_hc_clusters |>
     avg_temperature = mean(mean_temp, na.rm = TRUE),
     avg_ruggedness = mean(terrain_ruggedness, na.rm = TRUE)
   )
-
 # Chart of size by cluster
 clus_size_chart <- ggplot(
   hc_cluster_summary,
@@ -375,6 +374,13 @@ ggsave(
   dpi = 300
 )
 
+hc_sizes <- hc_cluster_summary |> 
+  select(cluster13, counties)
+hc_profiles <- hc_profiles |> 
+  left_join(hc_sizes, by = "cluster13")
+hc_profiles <- hc_profiles |> 
+  rename(cluster = cluster13, size = counties)
+
 # Finding representative counties
 hc_clustered <- clust_scaled |>
   as.data.frame() |>
@@ -408,8 +414,26 @@ hc_representatives_named <- hc_representatives |>
     county |> st_drop_geometry() |> select(GEOID, county_name),
     by = "GEOID"
   ) |>
-  select(cluster, county_name, distance_to_center)
+  select(cluster, county_name, distance_to_center) |>
+  mutate(cluster = as.numeric(cluster)) |> 
+  rename(
+    rep_name = county_name
+  ) |>
+  select(
+    cluster,
+    rep_name,
+    distance_to_center
+  )
 
+
+hc_profiles_final <- hc_profiles |> 
+  mutate(
+    cluster = as.numeric(cluster)
+  ) |>
+  left_join(
+    hc_representatives_named,
+    by = "cluster"
+  )
 # Largest counties in the cluster
 largest_counties <- county |>
   left_join(
@@ -421,6 +445,8 @@ largest_counties <- county |>
   slice_head(n=3) |> 
   select(GEOID, county_name, cluster13, everything())
 
+saveRDS(hc_profiles_final, "data/final/hc_clusters_profiles.rds")
+saveRDS(largest_counties, "data/final/hc_largest_counties.rds")
 #############################################################################
 # End of Script
 #############################################################################
