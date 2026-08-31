@@ -2,7 +2,7 @@
 
 📖 Read the Report: [PDF](https://jacobrasmussen06.github.io/usa-county-analysis/report/report.pdf) &nbsp; [HTML](https://jacobrasmussen06.github.io/usa-county-analysis/report/report.html)
 
-📊 Explore the Interactive Dashboard featuring an interactive map: [Dashboard]("link here")
+📊 Explore the Interactive Dashboard featuring an interactive map: [Dashboard](https://jacobrasmussen06.shinyapps.io/us-county-explorer/)
 
 # Exploring the Statistical Geography of the USA
 
