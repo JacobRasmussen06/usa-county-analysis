@@ -1,5 +1,6 @@
 library(shiny)
 library(tidyverse)
+library(markdown)
 library(sf)
 library(leaflet)
 library(bslib)
@@ -15,6 +16,7 @@ source("modules/variable_explorer.R")
 source("modules/comparison.R")
 source("modules/cluster.R")
 source("modules/uniqueness.R")
+source("modules/interactive_map.R")
 source("modules/methodology.R")
 source("modules/data_dictionary.R")
 source("modules/about.R")
@@ -29,6 +31,7 @@ ui <- page_navbar(
   nav_panel("County Comparison", comparison_ui("comparison")),
   nav_panel("Clusters", cluster_ui("cluster")),
   nav_panel("Uniqueness", uniqueness_ui("uniqueness")),
+  nav_panel("Interactive Map", map_ui("map")),
   nav_panel("Methodology", methodology_ui("methodology")),
   nav_panel("Data Dictionary", data_dictionary_ui("data_dictionary")),
   nav_panel("About", about_ui("about"))
@@ -41,6 +44,7 @@ server <- function(input, output, session){
   comparison_server("comparison")
   cluster_server("cluster")
   uniqueness_server("uniqueness")
+  map_server("map")
   methodology_server("methodology")
   about_server("about")
 }

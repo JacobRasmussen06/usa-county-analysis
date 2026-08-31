@@ -18,7 +18,7 @@ library(cluster)
 library(tidyverse)
 library(mclust)
 library(pheatmap)
-
+library(sf)
 
 #############################################################################
 # Setup
@@ -311,10 +311,9 @@ cluster_profiles_pc20 <- county_clusters |>
   summarise(
     across(
       where(is.numeric),
-      ~mean(.x, na.rm = TRUE))) |> 
+      ~mean(.x, na.rm = TRUE))) 
 
-
-profile_scaled_20 <- cluster_profiles_pc20 |>
+profile_scaled_20 <- cluster_profiles_pc20 |> 
   column_to_rownames("cluster13") |>
   scale() |>
   as.data.frame()
@@ -504,9 +503,58 @@ cluster_profiles_final <- cluster_profiles_final |>
     by = "cluster"
   )
 
+pca_profiles <- tibble(
+  cluster = 1:13,
+  cluster_name = c(
+    "Frigid Retirement Communities",
+    "Rural Appalachia / Lower Midwest",
+    "Stable Urban Megacities",
+    "Extraction Counties",
+    "Northern Rural America",
+    "Midwest Suburbia",
+    "Western Highlands",
+    "East Coast Aging Counties",
+    "Sun Belt Metros",
+    "Underserved Southern Communities",
+    "Industrial Belt Cities",
+    "Border Counties",
+    "Growing Urban Centers"
+  ),
+  description = c(
+    "By far, the counties in this cluster are the oldest, with over 28% of the population on average being over 65. These counties are among the coldest in the country, with a few outliers in California and Arizona. These counties have a lot of veterans, not a lot of immigrants, are typically much more rural, typically vote republican, and have a lot of forests.", 
+    "These counties, almost entirely located in the Appalachia region into states like Missouri and Arkansas, are extremely rural in nature. This cluster has the largest number of counties (605), is not very diverse, and has low diversity and income, with a higher poverty rate and reliance on SNAP. It has the highest rate of construction workers, and overwhelmingly votes republican.", 
+    "This cluster contains just 30 counties, mostly only urban centers. Its population is relatively stable, with minor population growth. Cities like San Francisco, New York, Chicago, and Boston all fit into this category. They’re extremely dense, and rely a lot on public transportation, and vote democratic in not very close elections.",
+    "These counties, prevalent across Texas and Oklahoma as well as parts of the west and Plains, are unique because of their high level of workforce in agriculture, their lower population densities, high immigration, and overall high extraction based economies. These counties barely get any precipitation, vote overwhelmingly republican and have a low unemployment rate.",
+    "These counties, almost all in the Great Plains region up towards the Canadian border, are extremely rural, with a population density average of just ~3.8. These counties are predominantly white, have lower than average poverty rates, and have low costs of living. They’re cold, don’t get a lot of rain, and are pretty flat.",
+    "These counties, mostly in the upper midwest, stretch through most of the major cities in the region. Its biggest counties are direct suburbs of major cities in the area, while others are more rural. These counties are typically colder than usual, predominantly white with lower than average poverty rates. Like other more rural counties, they have a pretty low cost of living, and vote typically republican in uncompetitive elections.",
+    "With little exceptions, these counties are predominantly counties with the Rocky Mountains in the backdrop. They’re more diverse than some of the other clusters, but still less diverse than the average, while they make more money than the average, and they have much more density than average. They have pretty competitive elections, typically favoring the democrats. These counties have high elevation, ruggedness, forest coverage, but not a lot of precipitation.",
+    "These counties, almost all in Florida or across the east coast, have a high median age. These counties are pretty densely populated compared to the first cluster, and have a lower than average poverty rate. It rains a lot in these counties, and is pretty hot too. These counties are also usually covered in bodies of water.",
+    "This group of metropolitan areas have found themselves in this cluster, predominantly being smaller metro areas or immediate suburbs in the southern half of the US. These counties are not as dense as the other metro clusters, but are pretty diverse and have a rising income. They’re hot, find themselves voting republican more often than not, and are flat.",
+    "These counties, mostly in the south, obviously tend to be hotter and flatter, as well as more diverse, less dense, and poorer. An average county in this cluster has just under 24k people, and this population has been declining. These counties are typically much more rural, have very high income inequality and poverty. These counties also see a lot of rain compared to the average and have lots more forest. These counties are far and away the least internet-accessible counties.",
+    "Another cluster of metropolitan areas finds us around the US in typically more industrial areas such as Summit County OH (with Akron), Wayne county, MI (with Detroit), and others. These cities across the midwest and other portions of the country are much less populated, poorer, and less diverse than the other metro counties that have been clustered. Their populations have stayed relatively stable thanks to a youthful population, and these counties have very competitive elections.",
+    "These counties, spread near the Mexican border as well as near the Canadian border, are young counties whose diversity comes with a 10% immigrant population. These counties have the highest reliance on SNAP and poverty rate in the entire country, and the lowest income of any cluster. This comes with the highest unemployment rate as well. These counties get very little precipitation and their temperature varies depending on the geography of the county (which border it is close to).",
+    "This cluster has a rapidly growing population, and contains cities like LA, Miami, and the immediate suburbs to many of the counties in Cluster Three. These counties sacrifice a bit of density, public transit usage, and immigrants in favor of a slightly less educated, slightly less impoverished population, and a lower cost of living. This cluster also has significantly more counties (193)."
+  ),
+  cluster_color = c(
+    "#8E6BBE",  # Frigid Retirement Communities
+    "#3A7D44",  # Rural Appalachia / Lower Midwest
+    "#2F6CB3",  # Stable Urban Megacities
+    "#B5651D",  # Extraction Counties
+    "#6BA368",  # Northern Rural America
+    "#F4C542",  # Midwest Suburbia
+    "#8C5A2B",  # Western Highlands
+    "#A07CC5",  # East Coast Aging Counties
+    "#4F9DED",  # Sun Belt Metros
+    "#E67E22",  # Underserved Southern Communities
+    "#7F8C8D",  # Industrial Belt Cities
+    "#C0392B",  # Border Counties
+    "#5DADE2"   # Growing Urban Centers
+  ))
+saveRDS(pca_profiles, "data/final/pca_cluster_types.rds")
+
 cluster_profiles_final <- cluster_profiles_final |>
   left_join(
-    pca_cluster_types |>
+    pca_profiles |>
       select(cluster, cluster_name, cluster_color),
     by = "cluster"
   )

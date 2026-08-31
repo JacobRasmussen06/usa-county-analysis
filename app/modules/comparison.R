@@ -5,26 +5,39 @@ comparison_ui <- function(id){
   tagList(
     h1("County Comparison"),
     uiOutput(ns("similar_intro")),
-    h2("Compare Two Counties!"),
-    fluidRow(
-      column(
-        6,
-        selectizeInput(
-          ns("county1"),
-          "County A",
-          choices = NULL,
-          selected = character(0),
-          options = list(
-            placeholder = "Search for a county..."))),
-      column(
-        6,
-        selectizeInput(
-          ns("county2"),
-          "County B",
-          choices = NULL,
-          selected = character(0),
-          options = list(
-            placeholder = "Search for a county...")))
+    div(
+      class = "comparison-selector",
+      h2("Compare Two Counties"),
+      p(
+        "Select two counties to compare their demographics, economy, ",
+        "politics, geography, and overall similarity."
+      ),
+      fluidRow(
+        column(
+          6,
+          selectizeInput(
+            ns("county1"),
+            "County A",
+            choices = NULL,
+            selected = character(0),
+            options = list(
+              placeholder = "Search for a county..."
+            )
+          )
+        ),
+        column(
+          6,
+          selectizeInput(
+            ns("county2"),
+            "County B",
+            choices = NULL,
+            selected = character(0),
+            options = list(
+              placeholder = "Search for a county..."
+            )
+          )
+        )
+      )
     ),
     h3(textOutput(ns("county_titles"))),
     uiOutput(ns("similarity_card")),
@@ -35,10 +48,10 @@ comparison_ui <- function(id){
     uiOutput(ns("compare_counties")),
     fluidRow(
       column(
-        8,
+        6,
         uiOutput(ns("raw_comparison"))),
       column(
-        4,
+        6,
         uiOutput(ns("similar_counties")))
     ),
     hr(),
@@ -116,25 +129,18 @@ comparison_server <- function(id){
         )
         paste0(county1_name, " vs. ", county2_name)
       })
-      output$similarity_card <- renderUI({
-        req(selected_counties())
-        counties <- selected_counties()
-        validate(
-          need(
-            counties$county1 != counties$county2,
-            ""))
-        county1_name <- county$county_name[
-          county$GEOID == counties$county1]
-        
-        county2_name <- county$county_name[
-          county$GEOID == counties$county2]
-        
-        div(
-          class = "summary-card",
-          h4("County Similarity"),
-          p(strong(county1_name), " and ", strong(county2_name), " are ", 
-            strong(paste0(round(similarity_score(), 1), "%")), " similar."))
-      })
+        output$similarity_card <- renderUI({
+          req(selected_counties()) 
+          counties <- selected_counties() 
+          validate( 
+            need( counties$county1 != counties$county2, "")) 
+          county1_name <- county$county_name[ county$GEOID == counties$county1] 
+          county2_name <- county$county_name[ county$GEOID == counties$county2] 
+          div( class = "summary-card", 
+               h4("County Similarity"), 
+               p(strong(county1_name), " and ", strong(county2_name), " are ", 
+                 strong(paste0(round(similarity_score(), 1), "%")), " similar.")) 
+          })
       output$comparison_plot <- renderPlot({
         counties <- selected_counties()
         validate(
@@ -168,7 +174,7 @@ comparison_server <- function(id){
           counties$county1,
           counties$county2
         )
-      }, digits = 2)
+      }, digits = 2, striped = TRUE)
       output$similar_counties <- renderUI({
         counties <- selected_counties()
         validate(
@@ -239,34 +245,28 @@ comparison_server <- function(id){
       })
       output$most_similar_table <- renderTable({
         most_similar_display |>
-          slice_head(n=15) |> 
-          mutate(
-            "County A" = county1,
-            "County B" = county2,
-            "Similarity" = similarity) |> 
-          select(
-            `County A`,
-            `County B`,
-            Similarity) |>
-          mutate(
+          slice_head(n = 15) |>
+          transmute(
+            `County A` = county1_name,
+            `County B` = county2_name,
             Similarity = paste0(
-              round(Similarity,1),
-              "%"))
+              round(similarity, 1),
+              "%"
+            )
+          )
       })
       output$least_similar_table <- renderTable({
         least_similar_display |>
-          slice_head(n = 15) |> 
-          mutate(
-            "County A" = county1,
-            "County B" = county2,
-            "Similarity" = similarity) |> 
-        select(
-          `County A`,
-          `County B`,
-          Similarity) |>
-          mutate(
+          slice_head(n = 15) |>
+          transmute(
+            `County A` = county1_name,
+            `County B` = county2_name,
             Similarity = paste0(
-              round(Similarity,1), "%"))
+              round(similarity, 1),
+              "%"
+            )
+          )
+        
       })
     })
 }

@@ -410,16 +410,16 @@ make_corrplot(politics, "Politics & Health Variable Correlations", "corr_politic
 
 # Top 20 Correlation
 top_correlations <- cor_table |>
-  filter(variable_1 != variable_2) |>
+  filter(Variable1 != Variable2) |>
   mutate(
-    variable_1 = as.character(variable_1),
-    variable_2 = as.character(variable_2),
+    Variable1 = as.character(Variable1),
+    Variable2 = as.character(Variable2),
     pair = paste(
-      pmin(variable_1, variable_2),
-      pmax(variable_1, variable_2),
+      pmin(Variable1, Variable2),
+      pmax(Variable1, Variable2),
       sep = " - "
     ),
-    abs_correlation = abs(correlation)
+    abs_correlation = abs(Correlation)
   ) |>
   distinct(pair, .keep_all = TRUE) |>
   arrange(desc(abs_correlation)) |>
@@ -604,7 +604,7 @@ precip_map <- ggplot(county) +
   ) +
   scale_fill_viridis_c(
     option = "plasma",
-    name = "Annual\nPrecipitation (in)"
+    name = "Annual\nPrecipitation (mm)"
   ) +
   labs(
     title = "Precipitation by US County",

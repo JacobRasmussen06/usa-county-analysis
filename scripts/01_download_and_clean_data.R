@@ -239,18 +239,11 @@ saveRDS(
 rucc <- read_csv(
   "data/raw/Ruralurbancontinuumcodes2023.csv"
 )
-rucc <- rucc |> 
-  rename(
-    "GEOID" = FIPS
-  )
-rucc_wide <- rucc |>
-  select(GEOID, County_Name, Attribute, Value) |>
-  pivot_wider(
-    names_from = Attribute,
-    values_from = Value
-  )
+
+# Original download of this dataset required cleaning
+
 write_csv(
-  rucc_wide,
+  rucc,
   "data/raw/Ruralurbancontinuumcodes2023.csv"
 )
 

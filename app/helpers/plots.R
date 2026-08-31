@@ -1,6 +1,9 @@
 # Variable Explorer
 
-plot_variable_map <- function(county_data, variable, title, subtitle, label = NULL){
+plot_variable_map <- function(county_data, variable, subtitle = "County level distribution"){
+  variable_label <- get_label(variable)
+  variable_unit <- get_unit(variable)
+  display_title <- if (is.na(variable_unit)) variable_label else paste(variable_label, variable_unit)
   ggplot(county_data) +
     geom_sf(
       aes(fill = .data[[variable]]),
@@ -8,50 +11,45 @@ plot_variable_map <- function(county_data, variable, title, subtitle, label = NU
     scale_fill_viridis_c(
       option = "plasma",
       na.value = "grey90",
-      name = label) +
+      name = display_title) +
     labs(
-      title = title,
+      title = display_title,
       subtitle = subtitle) +
     theme_void() +
     theme(
-      plot.title = element_text(
-        size = 18,
-        face = "bold",
-        hjust = .5),
-      plot.subtitle = element_text(
-        size = 12,
-        hjust = .5),
+      plot.title = element_text(size = 18, face = "bold", hjust = .5, color = "#16324F"),
+      plot.subtitle = element_text(size = 12, hjust = .5, color = "#6B7680"),
       legend.position = "right")
 }
 
-plot_variable_distribution <- function(county_data, variable, title){
+plot_variable_distribution <- function(county_data, variable){
+  variable_label <- get_label(variable)
+  variable_unit <- get_unit(variable)
+  display_title <- if (is.na(variable_unit)) variable_label else paste(variable_label, variable_unit)
   ggplot(
     county_data,
     aes(x = .data[[variable]])) +
     geom_histogram(
       bins = 40,
-      fill = "#3C8DAD",
-      color = "black") +
+      fill = "#2C6E9E",
+      color = "#16324F",
+      alpha = 0.85) +
     labs(
-      title = title,
+      title = paste("Distribution of", display_title),
       x = NULL,
       y = "Number of Counties") +
     theme_classic(base_size = 14) +
     theme(
-      plot.title = element_text(
-        size = 15,
-        face = "bold",
-        hjust = .5),
-      plot.subtitle = element_text(
-        size = 12,
-        hjust = .5),
-      axis.text.y = element_text(size = 10),
+      plot.title = element_text(size = 15, face = "bold", hjust = .5, color = "#16324F"),
+      axis.text = element_text(size = 10, color = "#16324F"),
       legend.position = "none",
       panel.grid = element_blank())
 }
 
-plot_variable_boxplot <- function(county_data, variable, title){
-  
+plot_variable_boxplot <- function(county_data, variable){
+  variable_label <- get_label(variable)
+  variable_unit <- get_unit(variable)
+  display_title <- if (is.na(variable_unit)) variable_label else paste(variable_label, variable_unit)
   county_data |>
     st_drop_geometry() |>
     ggplot(
@@ -59,14 +57,18 @@ plot_variable_boxplot <- function(county_data, variable, title){
         y = .data[[variable]]
       )) +
     geom_boxplot(
-      fill = "steelblue",
-      alpha = .7) +
+      fill = "#2C6E9E",
+      color = "#16324F",
+      alpha = .75) +
     coord_flip() + 
     labs(
-      title = title,
+      title = paste(display_title, "Distribution"),
       y = NULL,
       x = NULL) +
-    theme_classic(base_size = 14)
+    theme_classic(base_size = 14) +
+    theme(
+      plot.title = element_text(size = 15, face = "bold", hjust = .5, color = "#16324F"),
+      axis.text = element_text(color = "#16324F"))
 }
 
 # County Comparison
@@ -230,3 +232,133 @@ plot_cluster_sizes <- function(cluster_profiles, size_variable, cluster_variable
       legend.position = "none")
 }
 
+plot_cluster_heatmap <- function(cluster_profiles, cluster_variable = "cluster13", title, subtitle) {
+  
+  heatmap_data <- cluster_profiles |>
+    select(
+      all_of(cluster_variable),
+      population_density,
+      diversity_index,
+      mean_temp,
+      poverty_rate,
+      median_household_income,
+      median_age,
+      college_grad_pct
+    ) |>
+    tidyr::pivot_longer(
+      cols = -all_of(cluster_variable),
+      names_to = "variable",
+      values_to = "value"
+    ) |>
+    group_by(variable) |>
+    mutate(
+      value = as.numeric(scale(value))
+    ) |>
+    ungroup()
+  
+  ggplot(
+    heatmap_data,
+    aes(
+      x = variable,
+      y = .data[[cluster_variable]],
+      fill = value)) +
+    geom_tile(color = "white") +
+    scale_fill_gradient2(
+      low = "#2C6E9E",
+      mid = "white",
+      high = "#C98A3E",
+      midpoint = 0) +
+    labs(
+      title = title,
+      subtitle = subtitle,
+      x = NULL,
+      y = NULL,
+      fill = "Relative\nvalue") +
+    theme_minimal(base_size = 13) +
+    theme(
+      plot.title = element_text(
+        size = 15,
+        face = "bold",
+        hjust = .5),
+      plot.subtitle = element_text(
+        size = 11,
+        hjust = .5),
+      axis.text.x = element_text(
+        angle = 45,
+        hjust = 1),
+      panel.grid = element_blank())
+}
+
+plot_gmm_uncertainty <- function(
+    cluster_profiles,
+    cluster_variable = "cluster",
+    uncertainty_variable = "gmm_uncertainty",
+    title = "Average GMM Uncertainty by Cluster",
+    subtitle = "Lower uncertainty indicates more confident cluster assignments"
+) {
+  cluster_colors <- setNames(
+    cluster_profiles$cluster_color,
+    cluster_profiles$cluster_name)
+  ggplot(
+    cluster_profiles,
+    aes(
+      x = reorder(
+        cluster_name,
+        .data[[uncertainty_variable]]),
+      y = .data[[uncertainty_variable]],
+      fill = cluster_name)) +
+    geom_col(
+      color = "black",
+      width = 0.7) +
+    geom_text(
+      aes(
+        label = round(.data[[uncertainty_variable]], 2)),
+      hjust = -0.12,
+      size = 4.2) +
+    scale_fill_manual(
+      values = cluster_colors) +
+    coord_flip() +
+    labs(
+      title = title,
+      subtitle = subtitle,
+      x = "GMM Cluster",
+      y = "Average Uncertainty") +
+    theme_classic(base_size = 14) +
+    theme(
+      plot.title = element_text(
+        size = 15,
+        face = "bold",
+        hjust = 0.5),
+      plot.subtitle = element_text(
+        size = 12,
+        hjust = 0.5),
+      axis.text.y = element_text(
+        size = 10),
+      legend.position = "none")
+}
+
+plot_cluster_profile <- function(profile, county_data, variables = cluster_characteristic_vars, cluster_color){
+  z_data <- purrr::map_dfr(variables, function(var){
+    z <- (profile[[var]] - mean(county_data[[var]], na.rm = TRUE)) / sd(county_data[[var]], na.rm = TRUE)
+    tibble::tibble(variable = get_label(var), z_score = as.numeric(z))
+  })
+  
+  ggplot(z_data, aes(x = reorder(variable, z_score), y = z_score)) +
+    geom_col(fill = cluster_color, color = "#16324F", width = 0.65) +
+    geom_hline(yintercept = 0, color = "#6B7680", linewidth = 0.6) +
+    coord_flip() +
+    labs(
+      title = "Cluster Profile vs. National Average",
+      subtitle = "Standard deviations above/below the average U.S. county",
+      x = NULL,
+      y = "Standard deviations from average"
+    ) +
+    theme_minimal(base_size = 13) +
+    theme(
+      plot.title = element_text(face = "bold", hjust = .5, color = "#16324F"),
+      plot.subtitle = element_text(hjust = .5, color = "#6B7680", size = 11),
+      axis.text = element_text(color = "#16324F"),
+      panel.grid.minor = element_blank(),
+      panel.grid.major.y = element_blank()
+    )
+}

@@ -1,5 +1,3 @@
-library(shiny)
-
 cluster_ui <- function(id){
   ns <- NS(id)
   tagList(
@@ -17,12 +15,79 @@ cluster_server <- function(id){
     function(input, output, session){
       ns <- session$ns
       selected_method <- reactiveVal(NULL)
+      selected_cluster <- reactiveVal(NULL)
       observeEvent(input$explore_pca, {
         selected_method("pca")})
       observeEvent(input$explore_hc, {
         selected_method("hc")})
       observeEvent(input$explore_gmm, {
         selected_method("gmm")})
+      observeEvent(input$pca_cluster_clicked, {
+        selected_cluster(input$pca_cluster_clicked)})
+      observeEvent(input$hc_cluster_clicked, {
+        selected_cluster(input$hc_cluster_clicked)})
+      observeEvent(input$gmm_cluster_clicked, {
+        selected_cluster(input$gmm_cluster_clicked)})
+      observeEvent(input$back_to_clusters, {
+        selected_cluster(NULL)
+      })
+      current_cluster_detail <- reactive({
+        req(selected_cluster())
+        method <- selected_method()
+        cluster_id <- selected_cluster()
+        
+        if (method == "pca") {
+          profiles <- pca_cluster_profiles
+          largest_source <- pca_largest_counties
+          largest_col <- "cluster"
+          size_col <- "counties"
+        } else if (method == "hc") {
+          profiles <- hc_cluster_profiles
+          largest_source <- hc_largest_counties
+          largest_col <- "cluster13"
+          size_col <- "size"
+        } else {
+          profiles <- gmm_cluster_profiles
+          largest_source <- gmm_largest_counties
+          largest_col <- "gmm_cluster"
+          size_col <- "size"
+        }
+        
+        profile <- profiles |> dplyr::filter(cluster == cluster_id)
+        req(nrow(profile) == 1)
+        
+        largest <- largest_source |> dplyr::filter(.data[[largest_col]] == cluster_id)
+        
+        list(
+          profile = profile,
+          size = profile[[size_col]],
+          largest_counties = largest,
+          description = get_cluster_description(method, cluster_id)
+        )
+      })
+      
+      output$cluster_detail_view <- renderUI({
+        detail <- current_cluster_detail()
+        cluster_detailed_profile(
+          profile = detail$profile,
+          size = detail$size,
+          largest_counties = detail$largest_counties,
+          description = detail$description,
+          back_id = ns("back_to_clusters"),
+          county_data = county,
+          plot_output_id = ns("cluster_profile_plot")
+        )
+      })
+      
+      output$cluster_profile_plot <- renderPlot({
+        detail <- current_cluster_detail()
+        plot_cluster_profile(
+          profile = detail$profile,
+          county_data = county,
+          cluster_color = detail$profile$cluster_color
+        )
+      }, height = 350)
+      
       output$pca_map <- renderPlot({
         plot_cluster_map(
           county_data = county,
@@ -42,6 +107,13 @@ cluster_server <- function(id){
           subtitle = "Distribution of counties across PCA-generated groups"
         )
       })
+      output$pca_heatmap <- renderPlot({
+        plot_cluster_heatmap(
+          cluster_profiles = pca_cluster_profiles,
+          title = "PCA Cluster Characteristics",
+          subtitle = "Relative characteristics of each county archetype"
+        )
+      }, height = 400)
       output$hc_map <- renderPlot({
         plot_cluster_map(
           county_data = county,
@@ -62,6 +134,16 @@ cluster_server <- function(id){
         )
       },
       height = 400)
+      output$hc_dendrogram <- renderPlot({
+        plot(
+          hc,
+          labels = FALSE,
+          hang = -1,
+          main = "Hierarchical Clustering Dendrogram",
+          xlab = "Counties",
+          ylab = "Height"
+        )
+      })
       output$gmm_map <- renderPlot({
         plot_cluster_map(
           county_data = county,
@@ -82,6 +164,12 @@ cluster_server <- function(id){
         )
       },
       height = 400)
+      output$gmm_uncertainty <- renderPlot({
+        plot_gmm_uncertainty(
+          cluster_profiles = gmm_cluster_profiles,
+          uncertainty_variable = "gmm_uncertainty"
+        )
+      }, height = 400)
       output$cluster_intro <- renderUI({
         tagList(
           p(
@@ -94,7 +182,8 @@ cluster_server <- function(id){
           fluidRow(
             column(
               4, 
-              wellPanel(
+              div(
+                class = "method-card",
                 h5("PCA Clustering"),
                 p(
                   "PCA Clustering first uses principal component analysis, which finds ",
@@ -103,11 +192,13 @@ cluster_server <- function(id){
                   "based on these components, grouping them into 13 clusters."),
                 actionButton(
                   ns("explore_pca"),
-                  "Explore PCA Clusters"))
+                  "Explore PCA Clusters",
+                  class = "county-action-button"))
             ),
             column(
               4,
-              wellPanel(
+              div(
+                class = "method-card",
                 h5("Hierarchical Clustering"),
                 p(
                   "Hierarchical Clustering builds a similarity tree between components, ",
@@ -116,11 +207,13 @@ cluster_server <- function(id){
                   "method also found 13 clusters as a sweet spot."),
                 actionButton(
                   ns("explore_hc"),
-                  "Explore Hierarchical Clusters"))
+                  "Explore Hierarchical Clusters",
+                  class = "county-action-button"))
             ),
             column(
               4,
-              wellPanel(
+              div(
+                class = "method-card",
                 h5("GMM Clustering"),
                 p(
                   "Gaussian Mixture Model Clustering, unlike the other two methods, is ",
@@ -130,7 +223,8 @@ cluster_server <- function(id){
                 ),
                 actionButton(
                   ns("explore_gmm"),
-                  "Explore GMM Clusters"))
+                  "Explore GMM Clusters",
+                  class = "county-action-button"))
             )),
           p(
             strong("Note: "),
@@ -148,7 +242,8 @@ cluster_server <- function(id){
               largest_counties =
                 pca_largest_counties |>
                 dplyr::filter(cluster == profile$cluster),
-              county_data = county
+              county_data = county,
+              click_id = ns("pca_cluster_clicked")
             )
           })
         )
@@ -163,7 +258,8 @@ cluster_server <- function(id){
               largest_counties =
                 hc_largest_counties |>
                 dplyr::filter(cluster13 == profile$cluster),
-              county_data = county
+              county_data = county,
+              click_id = ns("hc_cluster_clicked")
             )
           })
         )
@@ -178,7 +274,8 @@ cluster_server <- function(id){
               largest_counties =
                 gmm_largest_counties |>
                 dplyr::filter(gmm_cluster == profile$cluster),
-              county_data = county
+              county_data = county,
+              click_id = ns("gmm_cluster_clicked")
             )
           })
         )
@@ -186,27 +283,34 @@ cluster_server <- function(id){
       output$cluster_explorer <- renderUI({
         req(selected_method())
         method <- selected_method()
+        if (!is.null(selected_cluster())) {
+          return(uiOutput(ns("cluster_detail_view")))
+        }
+        
         if(method == "pca"){
           tagList(
             h2("PCA County Archetypes"),
-            plotOutput(
+            div(class = "card", plotOutput(
               ns("pca_map"),
               height = "600px",
               width = "100%"
-            ),
-            fluidRow(
-              column(
-                6,
-                plotOutput(
-                  ns("pca_sizes"), 
-                  height = "400px"
-                )
-              ),
-              column(
-                6,
-                plotOutput(
-                  ns("pca_heatmap"),
-                  height = "400px"
+            )),
+            div(
+              class = "card",
+              fluidRow(
+                column(
+                  6,
+                  plotOutput(
+                    ns("pca_sizes"), 
+                    height = "400px"
+                  )
+                ),
+                column(
+                  6,
+                  plotOutput(
+                    ns("pca_heatmap"),
+                    height = "400px"
+                  )
                 )
               )
             ),
@@ -219,26 +323,30 @@ cluster_server <- function(id){
         else if(method == "hc"){
           tagList(
             h2("Hierarchical County Archetypes"),
-            plotOutput(
+            div(class = "card", plotOutput(
               ns("hc_map"),
               height = "600px",
               width = "100%"
-            ),
-            fluidRow(
-              column(
-                6,
-                plotOutput(
-                  ns("hc_sizes"), 
-                  height = "400px"
-                )),
-              column(
-                6,
-                plotOutput(
-                  ns("hc_heatmap"),
-                  height = "400px"
+            )),
+            div(
+              class = "card",
+              fluidRow(
+                column(
+                  6,
+                  plotOutput(
+                    ns("hc_sizes"), 
+                    height = "400px"
+                  )),
+                column(
+                  6,
+                  plotOutput(
+                    ns("hc_dendrogram"),
+                    height = "400px"
+                  )
                 )
               )
             ),
+            h2("Cluster Profiles"),
             uiOutput(
               ns("hc_profiles")
             )
@@ -248,27 +356,31 @@ cluster_server <- function(id){
         else if(method == "gmm"){
           tagList(
             h2("GMM County Archetypes"),
-            plotOutput(
+            div(class = "card", plotOutput(
               ns("gmm_map"),
               height = "600px",
               width = "100%"
-            ),
-            fluidRow(
-              column(
-                6,
-                plotOutput(
-                  ns("gmm_sizes"), 
-                  height = "400px"
-                )
-              ),
-              column(
-                6,
-                plotOutput(
-                  ns("gmm_heatmap"),
-                  height = "400px"
+            )),
+            div(
+              class = "card",
+              fluidRow(
+                column(
+                  6,
+                  plotOutput(
+                    ns("gmm_sizes"), 
+                    height = "400px"
+                  )
+                ),
+                column(
+                  6,
+                  plotOutput(
+                    ns("gmm_uncertainty"),
+                    height = "400px"
+                  )
                 )
               )
             ),
+            h2("Cluster Profiles"),
             uiOutput(
               ns("gmm_profiles")
             )

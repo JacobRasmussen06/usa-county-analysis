@@ -151,7 +151,25 @@ dist_mat <- dist(clust_scaled, method = "euclidean")
 
 hc <- hclust(dist_mat, method = "ward.D2")
 
-plot(hc, labels = FALSE, hang = -1)
+saveRDS(hc, "data/finished/hccluster.rds")
+
+png(
+  "figures/clustering/charts/hierarchical_dendrogram.png",
+  width = 2400,
+  height = 1600,
+  res = 300
+)
+
+plot(
+  hc,
+  labels = FALSE,
+  hang = -1,
+  main = "Hierarchical Clustering Dendrogram",
+  xlab = "Counties",
+  ylab = "Height"
+)
+
+dev.off()
 
 fviz_nbclust(clust_scaled, FUN = hcut, method = "silhouette")
 fviz_nbclust(clust_scaled, FUN = hcut, method = "wss")
