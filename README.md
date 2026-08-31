@@ -1,8 +1,8 @@
 # usa-county-analysis
 
-📖 Read the Report: [PDF](https://jacobrasmussen06.github.io/usa-county-analysis/report/report.pdf) &nbsp; [HTML](https://jacobrasmussen06.github.io/usa-county-analysis/report/report.html)
-
 📊 Explore the Interactive Dashboard featuring an interactive map: [Dashboard](https://jacobrasmussen06.shinyapps.io/us-county-explorer/)
+
+📖 Read the Report: [PDF](https://jacobrasmussen06.github.io/usa-county-analysis/report/report.pdf) &nbsp; [HTML](https://jacobrasmussen06.github.io/usa-county-analysis/report/report.html)
 
 # Exploring the Statistical Geography of the USA
 
@@ -97,6 +97,3 @@ There are several avenues to expand the work completed in this project. Several 
 ## About Me
 
 Jacob Rasmussen, third year data science and statistics student at UW-Madison
-
-
-`````tex
