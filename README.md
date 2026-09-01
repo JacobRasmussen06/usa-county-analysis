@@ -4,6 +4,10 @@
 
 📖 Read the Report: [PDF](https://jacobrasmussen06.github.io/usa-county-analysis/report/report.pdf) &nbsp; [HTML](https://jacobrasmussen06.github.io/usa-county-analysis/report/report.html)
 
+🗃️ [GitHub Repository](https://github.com/JacobRasmussen06/usa-county-analysis)
+
+🔗 [Live Pages](https://jacobrasmussen06.github.io/usa-county-analysis/)
+
 # Exploring the Statistical Geography of the USA
 
 Counties, or county-equivalents like Parishes, in the United States are similar and different on several different characteristics. Among these can include a county's demographics, economics, geography, or politics. Some counties, like the 5 New York boroughs, are obviously similar, and different from incredibly rural counties such as Loving County, Texas. However, how can counties be grouped into meaningful clusters? How are counties typically similar. How are counties typically different?
